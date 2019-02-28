@@ -12,3 +12,12 @@ export declare const signGroups: {
     [modifySymbol]: string;
 };
 export declare const delayGap = 200;
+export declare const ignorePrefix: string[];
+export declare const second = 1000;
+export declare const minute: number;
+export declare const hour: number;
+export declare const day: number;
+export declare const year: number;
+export declare const month: number;
+export declare const blameKeys: string[];
+export declare const emptyHash = "0000000000000000000000000000000000000000";

@@ -5,3 +5,10 @@ function! gitp#get_signs(bufnr) abort
   redir END
   return l:signlines
 endfunction
+
+" trigger diff and blame info update event
+function! gitp#diff_and_blame_update() abort
+  if exists('#User#GitPDiffAndBlameUpdate')
+    doautocmd User GitPDiffAndBlameUpdate
+  endif
+endfunction

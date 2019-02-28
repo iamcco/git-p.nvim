@@ -3,23 +3,31 @@ export default class App {
     private plugin;
     private diff$;
     private diffSubscription;
-    private blameSubscription;
-    private blame$;
     private fromDiffFile;
     private toDiffFile;
-    private fromBlameFile;
     private toBlameFile;
     private tempDir;
     private logger;
+    private virtualId;
+    private blames;
+    private diffs;
     constructor(plugin: Plugin);
     private init;
+    private startSubscribeDiff;
+    /**
+     * clear blame virtual text except:
+     *
+     * 1. do not support virtual
+     * 2. do not have virtual set
+     * 3. at the same as before
+     */
+    private clearBlameLine;
+    private updateBlameLine;
     private updateDiffSign;
     private getBufferInfo;
     private getCurrentBuffer;
     private closeFile;
-    updateDiffFile(): void;
-    private updateBlameFile;
-    private updateDiff;
-    updateBlame(bufnr: number): void;
+    createDiffTmpFiles(): void;
+    private createBlameTmpFiles;
     destroy(): void;
 }

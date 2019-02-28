@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { Buffer } from 'neovim';
 export declare type DiffInfo = {
     [diffKey: string]: string[];
 };
@@ -12,13 +13,31 @@ export declare type Diff = {
         [lineNum: string]: DiffLine;
     };
 };
-export interface BufferInfo {
+export declare type BlameLine = {
+    hash?: string;
+    account?: string;
+    date?: string;
+    time?: string;
+    ago?: string;
+    zone?: string;
+    lineNum?: string;
+    lineString?: string;
+    rawString: string;
+};
+export declare type BufferInfo = {
+    buffer: Buffer;
     gitDir: string;
     filePath: string;
     absFilePath: string;
     bufnr: number;
     content: string;
-}
+    currentLine: number;
+};
+export declare type GitDirs = {
+    [gitDir: string]: {
+        [filePath: string]: boolean;
+    };
+};
 export interface GitParams {
     fromFile: fs.WriteStream;
     toFile: fs.WriteStream;

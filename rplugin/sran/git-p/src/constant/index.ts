@@ -18,3 +18,25 @@ export const signGroups = {
 
 // delay before diff
 export const delayGap = 200
+
+// files with there prefix will ignore
+export const ignorePrefix = ['.git/']
+
+export const second = 1000
+export const minute = 60 * second
+export const hour = 60 * minute
+export const day = 24 * hour
+export const year = 365 * day
+export const month = 30 * day
+
+export const blameKeys = [
+  'hash',
+  'account',
+  'date',
+  'time',
+  'ago',
+  'zone',
+  'lineNum'
+]
+
+export const emptyHash = '0000000000000000000000000000000000000000'

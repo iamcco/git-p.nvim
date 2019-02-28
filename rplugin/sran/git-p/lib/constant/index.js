@@ -18,3 +18,21 @@ exports.signGroups = (_a = {},
     _a);
 // delay before diff
 exports.delayGap = 200;
+// files with there prefix will ignore
+exports.ignorePrefix = ['.git/'];
+exports.second = 1000;
+exports.minute = 60 * exports.second;
+exports.hour = 60 * exports.minute;
+exports.day = 24 * exports.hour;
+exports.year = 365 * exports.day;
+exports.month = 30 * exports.day;
+exports.blameKeys = [
+    'hash',
+    'account',
+    'date',
+    'time',
+    'ago',
+    'zone',
+    'lineNum'
+];
+exports.emptyHash = '0000000000000000000000000000000000000000';

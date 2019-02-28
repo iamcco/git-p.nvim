@@ -29,20 +29,20 @@ function pcb(cb, codes, isThrowError) {
     };
 }
 exports.pcb = pcb;
-// get git hunk info
+// get diff info
 function gitDiff(params) {
     return tslib_1.__awaiter(this, void 0, void 0, function () {
         var _this = this;
         return tslib_1.__generator(this, function (_a) {
             return [2 /*return*/, new Promise(function (resolve, reject) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
-                    var bufferInfo, fromFile, toFile, indexFile, diff, error_1;
+                    var bufferInfo, fromFile, toFile, indexFile, blame, diff, error_1;
                     return tslib_1.__generator(this, function (_a) {
                         switch (_a.label) {
                             case 0:
                                 bufferInfo = params.bufferInfo, fromFile = params.fromFile, toFile = params.toFile;
                                 _a.label = 1;
                             case 1:
-                                _a.trys.push([1, 6, , 7]);
+                                _a.trys.push([1, 7, , 8]);
                                 return [4 /*yield*/, pcb(child_process_1.execFile)('git', ['--no-pager', 'show', ":" + bufferInfo.filePath], {
                                         cwd: bufferInfo.gitDir,
                                     })
@@ -58,24 +58,42 @@ function gitDiff(params) {
                                 // write index file to tmp file
                                 _a.sent();
                                 // write buffer content to tmp file
-                                return [4 /*yield*/, pcb(toFile.end.bind(toFile))(bufferInfo.content)
-                                    // git diff exit with code 1 if there is difference
-                                ];
+                                return [4 /*yield*/, pcb(toFile.end.bind(toFile))(bufferInfo.content)];
                             case 4:
                                 // write buffer content to tmp file
                                 _a.sent();
+                                return [4 /*yield*/, pcb(child_process_1.execFile)('git', [
+                                        '--no-pager',
+                                        'blame',
+                                        '-l',
+                                        '--root',
+                                        '-t',
+                                        "-L" + bufferInfo.currentLine + "," + bufferInfo.currentLine,
+                                        '--contents',
+                                        toFile.path,
+                                        bufferInfo.filePath
+                                    ], {
+                                        cwd: bufferInfo.gitDir
+                                    })
+                                    // git diff exit with code 1 if there is difference
+                                ];
+                            case 5:
+                                blame = (_a.sent())[0];
                                 return [4 /*yield*/, pcb(child_process_1.execFile, [1])('git', ['--no-pager', 'diff', '-p', '-U0', '--no-color', fromFile.path, toFile.path], {
                                         cwd: bufferInfo.gitDir
                                     })];
-                            case 5:
-                                diff = (_a.sent())[0];
-                                resolve(parseDiff(diff));
-                                return [3 /*break*/, 7];
                             case 6:
+                                diff = (_a.sent())[0];
+                                resolve({
+                                    blame: parseBlame(blame),
+                                    diff: parseDiff(diff)
+                                });
+                                return [3 /*break*/, 8];
+                            case 7:
                                 error_1 = _a.sent();
                                 reject(error_1);
-                                return [3 /*break*/, 7];
-                            case 7: return [2 /*return*/];
+                                return [3 /*break*/, 8];
+                            case 8: return [2 /*return*/];
                         }
                     });
                 }); })];
@@ -83,12 +101,80 @@ function gitDiff(params) {
     });
 }
 exports.gitDiff = gitDiff;
-// get git blame info
-function gitBlame(params) {
-    return new Promise(function () {
-    });
+/**
+ * blame lines example:
+ *
+ * 1135f48e9dc3fd2a04d26bde28b3c6d7e2098653 (iamcco            1551111936 +0800  7) import findup from 'findup';
+ * b162af96d412d4dc97e64ea79c299ecd5abaf079 (iamcco            1551097475 +0800  8)
+ * 0000000000000000000000000000000000000000 (Not Committed Yet 1551503101 +0800  9) import { pcb, gitDiff } from './util';
+ * ...
+ */
+function parseBlame(line) {
+    var reg = /^([^ ]+)\s+\((.+?)\s+(\d{10})\s+(.\d{4})\s+(\d+)\)\s?(.*$)/;
+    var m = line.trim().match(reg) || {};
+    var res = {
+        hash: m[1],
+        account: m[1] === constant_1.emptyHash ? 'You' : m[2],
+        date: dateFormat(m[3], 'YYYY/HH/DD'),
+        time: dateFormat(m[3], 'HH:mm:ss'),
+        ago: ago(m[3]),
+        zone: m[4],
+        lineNum: m[5],
+        lineString: m[6],
+        rawString: line,
+    };
+    return res;
 }
-exports.gitBlame = gitBlame;
+exports.parseBlame = parseBlame;
+function align(str) {
+    return ("" + str).replace(/^(\d)$/, '0$1');
+}
+exports.align = align;
+function ago(timestamp) {
+    var now = Date.now();
+    var before = new Date(parseInt(timestamp + "000", 10)).getTime();
+    var gap = now - before;
+    var years = Math.floor(gap / constant_1.year);
+    if (years) {
+        return years + " year" + (years > 1 && 's' || '') + " ago";
+    }
+    var months = Math.floor(gap / constant_1.month);
+    if (months) {
+        return months + " month" + (months > 1 && 's' || '') + " ago";
+    }
+    var days = Math.floor(gap / constant_1.day);
+    if (days) {
+        return days + " day" + (days > 1 && 's' || '') + " ago";
+    }
+    var hours = Math.floor(gap / constant_1.hour);
+    if (hours) {
+        return hours + " hour" + (hours > 1 && 's' || '') + " ago";
+    }
+    var minutes = Math.floor(gap / constant_1.minute);
+    if (minutes) {
+        return minutes + " minute" + (minutes > 1 && 's' || '') + " ago";
+    }
+    var seconds = Math.floor(gap / constant_1.second);
+    if (seconds) {
+        return seconds + " second" + (seconds > 1 && 's' || '') + " ago";
+    }
+    return 'a moment ago';
+}
+exports.ago = ago;
+function dateFormat(timestamp, format) {
+    if (timestamp === undefined) {
+        return '';
+    }
+    var date = new Date(parseInt(timestamp + "000", 10));
+    return format.replace(/YYYY/g, "" + date.getFullYear())
+        .replace(/MM/g, "" + (date.getMonth() + 1))
+        .replace(/DD/g, align(date.getDate()))
+        .replace(/HH/g, align(date.getHours()))
+        .replace(/hh/g, "" + date.getHours())
+        .replace(/mm/g, align(date.getMinutes()))
+        .replace(/ss/g, align(date.getSeconds()));
+}
+exports.dateFormat = dateFormat;
 /**
  * parse diff string to Diff
  *

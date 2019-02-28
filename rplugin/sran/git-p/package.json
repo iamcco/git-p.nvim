@@ -7,11 +7,10 @@
     "build": "tsc -p ./"
   },
   "devDependencies": {
-    "@types/node": "^11.9.5"
-  },
-  "dependencies": {
+    "@types/node": "^11.9.5",
+    "neovim": "^4.2.1",
+    "sran.nvim": "^0.0.5",
     "findup": "^0.1.5",
-    "rxjs": "^6.4.0",
-    "sran.nvim": "^0.0.3"
+    "rxjs": "^6.4.0"
   }
 }

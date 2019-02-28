@@ -3,88 +3,70 @@ import fs from 'fs';
 import path from 'path';
 import Plugin from 'sran.nvim';
 import { Subject, Subscription, from, of, timer } from 'rxjs';
-import { switchMap, map, catchError, filter } from 'rxjs/operators';
+import { switchMap, map, catchError, filter, mergeMap } from 'rxjs/operators';
 import findup from 'findup';
 
-import { pcb, gitDiff, gitBlame } from './util';
-import { BufferInfo, Diff } from './types';
-import { signPrefix, signGroups, deleteTopAndBottomSymbol, deleteTopSymbol, delayGap } from './constant';
+import { pcb, gitDiff } from './util';
+import { BufferInfo, Diff, BlameLine } from './types';
+import {
+  signPrefix,
+  signGroups,
+  deleteTopAndBottomSymbol,
+  deleteTopSymbol,
+  delayGap,
+  ignorePrefix,
+  blameKeys,
+} from './constant';
 
 const TEMP_FROM_DIFF_FILE_NAME: string = 'git-p-from-diff.tmp'
 const TEMP_TO_DIFF_FILE_NAME: string = 'git-p-diff.tmp'
-const TEMP_FROM_BLAME_FILE_NAME: string = 'git-p-from-blame.tmp'
 const TEMP_TO_BLAME_FILE_NAME: string = 'git-p-blame.tmp'
 
 const NOTIFY_DIFF = 'git-p-diff'
-const NOTIFY_BLAME = 'git-p-blame'
+const NOTIFY_CLEAR_BLAME = 'git-p-clear-blame'
+const REQUEST_BLAME = 'git-p-r-blame'
 
 export default class App {
   private diff$: Subject<number> = new Subject<number>()
   private diffSubscription: Subscription
-  private blameSubscription: Subscription
-  private blame$: Subject<number> = new Subject<number>()
   private fromDiffFile: fs.WriteStream
   private toDiffFile: fs.WriteStream
-  private fromBlameFile: fs.WriteStream
   private toBlameFile: fs.WriteStream
   private tempDir: string
   private logger: any
+  private virtualId: number | undefined
+  // save blame line number of each buffer
+  private blames: {
+    [bufnr: string]: {
+      line: number
+      blame: BlameLine
+      mode: string // vim mode
+    }
+  } = {}
+  // save diff info of each buffer
+  private diffs: {
+    [bufnr: string]: Diff
+  } = {}
 
   constructor(private plugin: Plugin) {
     this.init()
   }
 
   private async init() {
-    this.logger = this.plugin.util.getLogger('GIT-P:App')
+    const { nvim, util } = this.plugin
+    this.logger = util.getLogger('GIT-P:App')
     this.tempDir = await pcb(fs.mkdtemp)(path.join(os.tmpdir(), 'git-p'), 'utf-8')
 
-    // diff subscription
-    this.diffSubscription = this.diff$.pipe(
-      switchMap(bufnr => from(this.getBufferInfo(bufnr))),
-      filter((bufInfo) => bufInfo !== undefined),
-      switchMap((bufInfo: BufferInfo) => {
-        return timer(delayGap).pipe(
-          switchMap(() => {
-            this.updateDiffFile()
-            return from(gitDiff({
-              bufferInfo: bufInfo,
-              fromFile: this.fromDiffFile,
-              toFile: this.toDiffFile,
-              logger: this.logger
-            })).pipe(
-              map(diff => ({
-                diff,
-                bufnr: bufInfo.bufnr
-              })),
-              catchError(error => {
-                this.logger.info('CatchError: ', error)
-                return of(error)
-              })
-            )
-          })
-        )
-      })
-    ).subscribe(({ diff, bufnr }) => {
-      this.updateDiffSign(diff, bufnr)
-    })
+    // if support virtual text
+    const hasVirtualText = await nvim.call('exists', '*nvim_buf_set_virtual_text')
+    if (hasVirtualText === 1) {
+      this.virtualId = await nvim.call('nvim_create_namespace', 'git-p-virtual-text')
+    }
 
-    // blame subscription
-    this.blameSubscription = this.blame$.pipe(
-      switchMap(bufnr => from(this.getBufferInfo(bufnr))),
-      filter(bufInfo => bufInfo !== undefined),
-      switchMap((bufInfo) => {
-        this.updateBlameFile()
-        return from(gitBlame({
-          bufferInfo: bufInfo,
-          fromFile: this.fromDiffFile,
-          toFile: this.toDiffFile,
-          logger: this.logger
-        }))
-      })
-    ).subscribe(() => {
-      //
-    })
+    // subscribe diff
+    this.diffSubscription = this.startSubscribeDiff()
 
+    // listen notification
     this.plugin.nvim.on('notification', async (method: string, args: any[]) => {
       const bufnr = args[0]
       if (bufnr === -1 || bufnr === undefined) {
@@ -92,15 +74,159 @@ export default class App {
       }
       switch (method) {
         case NOTIFY_DIFF:
-          this.updateDiff(bufnr)
+          this.diff$.next(bufnr)
           break;
-        case NOTIFY_BLAME:
-          this.updateBlame(bufnr)
+        case NOTIFY_CLEAR_BLAME:
+          this.clearBlameLine(bufnr, args[1])
           break;
         default:
           break;
       }
     })
+
+    this.plugin.nvim.on( 'request',
+      async (method: string, args: any[], res: { send: (...args: any[]) => any }) => {
+        const bufnr = args[0]
+        if (bufnr === -1 || bufnr === undefined) {
+          return;
+        }
+        switch (method) {
+          case REQUEST_BLAME:
+            res.send(args)
+            break;
+          default:
+            break;
+        }
+    })
+  }
+
+  private startSubscribeDiff(): Subscription {
+    return this.diff$.pipe(
+      switchMap(bufnr => timer(delayGap).pipe(
+        switchMap(() => from(this.getBufferInfo(bufnr))),
+        filter((bufInfo) => bufInfo !== undefined),
+        switchMap((bufInfo: BufferInfo) => {
+          this.createDiffTmpFiles()
+          return from(gitDiff({
+            bufferInfo: bufInfo,
+            fromFile: this.fromDiffFile,
+            toFile: this.toDiffFile,
+            logger: this.logger
+          })).pipe(
+            map(res => ({
+              bufInfo,
+              blame: res.blame,
+              diff: res.diff,
+            })),
+            catchError(error => {
+              this.logger.info('Current Buffer Info: ', {
+                bufnr: bufInfo.bufnr,
+                gitDir: bufInfo.gitDir,
+                filePath: bufInfo.filePath,
+                currentLine: bufInfo.currentLine,
+              })
+              this.logger.error('Diff Error: ', error.message)
+              return of(error)
+            })
+          )
+        })
+      )),
+      mergeMap(({ bufInfo, blame, diff }: {
+        bufInfo: BufferInfo,
+        blame: BlameLine,
+        diff: Diff
+      }) => {
+        return from((async () => {
+          if (!bufInfo) {
+            return
+          }
+          try {
+            // save diff
+            this.diffs[bufInfo.bufnr] = diff
+            // upate diff sign
+            await this.updateDiffSign(diff, bufInfo.bufnr)
+            // update b:gitp_blame
+            await bufInfo.buffer.setVar('gitp_blame', blame)
+            // update blame line
+            await this.updateBlameLine(blame, bufInfo)
+            // trigger diff and blame update user event
+            await this.plugin.nvim.call('gitp#diff_and_blame_update')
+          } catch (error) {
+            return error
+          }
+        })())
+      })
+    ).subscribe(error => {
+      if (error) {
+        this.logger.error('Update Diff Signs Error: ', error)
+      }
+    })
+  }
+
+  /**
+   * clear blame virtual text except:
+   *
+   * 1. do not support virtual
+   * 2. do not have virtual set
+   * 3. at the same as before
+   */
+  private clearBlameLine(bufnr: number, line: number) {
+    if (this.virtualId === undefined ||
+      this.blames[bufnr] === undefined ||
+      line === undefined ||
+      this.blames[bufnr].line === line
+    ) {
+      return
+    }
+    this.blames[bufnr] = undefined
+    const { nvim } = this.plugin
+    nvim.call( 'nvim_buf_clear_namespace', [bufnr, this.virtualId, 0, -1])
+  }
+
+  private async updateBlameLine(blame: BlameLine, bufInfo: BufferInfo) {
+    if (!blame || this.virtualId === undefined) {
+      return
+    }
+    const { nvim } = this.plugin
+    // virtual text is not enable
+    const enableVirtualText = await nvim.getVar('gitp_blame_virtual_text')
+    if (enableVirtualText !== 1) {
+      return
+    }
+    const { bufnr, currentLine } = bufInfo
+    const mode: string = await nvim.call('mode')
+    // do not update blame if same line, hash and mode as before
+    if (this.blames[bufnr] !== undefined &&
+      this.blames[bufnr].line === currentLine &&
+      this.blames[bufnr].blame.hash === blame.hash &&
+      this.blames[bufnr].mode === mode &&
+      mode !== 'n'
+    ) {
+      return
+    }
+    // save blame
+    this.blames[bufnr] = {
+      line: currentLine,
+      blame,
+      mode
+    }
+    // clear pre virtual text
+    await nvim.call( 'nvim_buf_clear_namespace', [bufnr, this.virtualId, 0, -1])
+    const formtLine = await nvim.getVar('gitp_blmae_format')
+    const blameText = blameKeys.reduce((res, next) => {
+      return res.replace(`%{${next}}`, blame[next])
+    }, formtLine as string)
+    // set new virtual text
+    await nvim.call(
+      'nvim_buf_set_virtual_text',
+      [
+        bufnr,
+        this.virtualId,
+        currentLine - 1,
+        [[blameText, 'GitPBlameLine']],
+        {}
+      ]
+    )
   }
 
   // update diff sign by diff info
@@ -199,25 +325,37 @@ export default class App {
   }
 
   private getBufferInfo(bufnr: number): Promise<undefined | BufferInfo> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise(async (resolve) => {
       const { nvim } = this.plugin
       const absFilePath = await nvim.call('expand', `#${bufnr}:p`)
+
       // file do not exist on disk
       if (!fs.existsSync(absFilePath)) {
         return resolve()
       }
+
       const gitDir = await pcb(findup, [], false)(absFilePath, '.git')
-      const buffer = await this.getCurrentBuffer(bufnr)
-      const content = await buffer.getLines()
       // .git dir do not exist
       if (!gitDir || !fs.existsSync(path.join(gitDir, '.git'))) {
         return resolve()
       }
+
+      const filePath = path.relative(gitDir, absFilePath)
+      // ignore if match prefix
+      if (ignorePrefix.some(prefix => filePath.startsWith(prefix))) {
+        return resolve()
+      }
+
+      const buffer = await this.getCurrentBuffer(bufnr)
+      const currentLine: number = await nvim.call('line', '.')
+      const content = await buffer.getLines()
       resolve({
+        buffer,
         gitDir,
-        filePath: path.relative(gitDir, absFilePath),
+        filePath,
         absFilePath,
         bufnr,
+        currentLine,
         content: content.join('\n') + '\n' // end newline
       })
     })
@@ -248,13 +386,12 @@ export default class App {
     }
   }
 
-  public updateDiffFile() {
+  // close tmp write stream and open new write stream
+  public createDiffTmpFiles() {
     if (this.fromDiffFile && this.fromDiffFile.writable) {
-      this.logger.info('close from file')
       this.closeFile(this.fromDiffFile)
     }
     if (this.toDiffFile && this.toDiffFile.writable) {
-      this.logger.info('clsoe to file')
       this.closeFile(this.toDiffFile)
     }
     this.fromDiffFile = fs.createWriteStream(
@@ -265,31 +402,16 @@ export default class App {
     )
   }
 
-  private updateBlameFile() {
-    if (this.fromBlameFile) {
-      this.closeFile(this.fromBlameFile)
-    }
+  private createBlameTmpFiles() {
     if (this.toBlameFile) {
       this.closeFile(this.toBlameFile)
     }
-    this.fromBlameFile = fs.createWriteStream(
-      path.join(this.tempDir, TEMP_FROM_BLAME_FILE_NAME)
-    )
     this.toBlameFile = fs.createWriteStream(
       path.join(this.tempDir, TEMP_TO_BLAME_FILE_NAME)
     )
   }
 
-  private updateDiff(bufnr: number) {
-    this.diff$.next(bufnr)
-  }
-
-  public updateBlame(bufnr: number) {
-    this.blame$.next(bufnr)
-  }
-
   public destroy() {
-    this.blameSubscription.unsubscribe()
     this.diffSubscription.unsubscribe()
   }
 }

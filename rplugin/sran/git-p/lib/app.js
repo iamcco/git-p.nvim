@@ -11,64 +11,48 @@ var util_1 = require("./util");
 var constant_1 = require("./constant");
 var TEMP_FROM_DIFF_FILE_NAME = 'git-p-from-diff.tmp';
 var TEMP_TO_DIFF_FILE_NAME = 'git-p-diff.tmp';
-var TEMP_FROM_BLAME_FILE_NAME = 'git-p-from-blame.tmp';
 var TEMP_TO_BLAME_FILE_NAME = 'git-p-blame.tmp';
 var NOTIFY_DIFF = 'git-p-diff';
-var NOTIFY_BLAME = 'git-p-blame';
+var NOTIFY_CLEAR_BLAME = 'git-p-clear-blame';
+var REQUEST_BLAME = 'git-p-r-blame';
 var App = /** @class */ (function () {
     function App(plugin) {
         this.plugin = plugin;
         this.diff$ = new rxjs_1.Subject();
-        this.blame$ = new rxjs_1.Subject();
+        // save blame line number of each buffer
+        this.blames = {};
+        // save diff info of each buffer
+        this.diffs = {};
         this.init();
     }
     App.prototype.init = function () {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var _a;
+            var _a, nvim, util, _b, hasVirtualText, _c;
             var _this = this;
-            return tslib_1.__generator(this, function (_b) {
-                switch (_b.label) {
+            return tslib_1.__generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
-                        this.logger = this.plugin.util.getLogger('GIT-P:App');
-                        _a = this;
+                        _a = this.plugin, nvim = _a.nvim, util = _a.util;
+                        this.logger = util.getLogger('GIT-P:App');
+                        _b = this;
                         return [4 /*yield*/, util_1.pcb(fs_1.default.mkdtemp)(path_1.default.join(os_1.default.tmpdir(), 'git-p'), 'utf-8')
-                            // diff subscription
+                            // if support virtual text
                         ];
                     case 1:
-                        _a.tempDir = _b.sent();
-                        // diff subscription
-                        this.diffSubscription = this.diff$.pipe(operators_1.switchMap(function (bufnr) { return rxjs_1.from(_this.getBufferInfo(bufnr)); }), operators_1.filter(function (bufInfo) { return bufInfo !== undefined; }), operators_1.switchMap(function (bufInfo) {
-                            return rxjs_1.timer(constant_1.delayGap).pipe(operators_1.switchMap(function () {
-                                _this.updateDiffFile();
-                                return rxjs_1.from(util_1.gitDiff({
-                                    bufferInfo: bufInfo,
-                                    fromFile: _this.fromDiffFile,
-                                    toFile: _this.toDiffFile,
-                                    logger: _this.logger
-                                })).pipe(operators_1.map(function (diff) { return ({
-                                    diff: diff,
-                                    bufnr: bufInfo.bufnr
-                                }); }), operators_1.catchError(function (error) {
-                                    _this.logger.info('CatchError: ', error);
-                                    return rxjs_1.of(error);
-                                }));
-                            }));
-                        })).subscribe(function (_a) {
-                            var diff = _a.diff, bufnr = _a.bufnr;
-                            _this.updateDiffSign(diff, bufnr);
-                        });
-                        // blame subscription
-                        this.blameSubscription = this.blame$.pipe(operators_1.switchMap(function (bufnr) { return rxjs_1.from(_this.getBufferInfo(bufnr)); }), operators_1.filter(function (bufInfo) { return bufInfo !== undefined; }), operators_1.switchMap(function (bufInfo) {
-                            _this.updateBlameFile();
-                            return rxjs_1.from(util_1.gitBlame({
-                                bufferInfo: bufInfo,
-                                fromFile: _this.fromDiffFile,
-                                toFile: _this.toDiffFile,
-                                logger: _this.logger
-                            }));
-                        })).subscribe(function () {
-                            //
-                        });
+                        _b.tempDir = _d.sent();
+                        return [4 /*yield*/, nvim.call('exists', '*nvim_buf_set_virtual_text')];
+                    case 2:
+                        hasVirtualText = _d.sent();
+                        if (!(hasVirtualText === 1)) return [3 /*break*/, 4];
+                        _c = this;
+                        return [4 /*yield*/, nvim.call('nvim_create_namespace', 'git-p-virtual-text')];
+                    case 3:
+                        _c.virtualId = _d.sent();
+                        _d.label = 4;
+                    case 4:
+                        // subscribe diff
+                        this.diffSubscription = this.startSubscribeDiff();
+                        // listen notification
                         this.plugin.nvim.on('notification', function (method, args) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
                             var bufnr;
                             return tslib_1.__generator(this, function (_a) {
@@ -78,10 +62,10 @@ var App = /** @class */ (function () {
                                 }
                                 switch (method) {
                                     case NOTIFY_DIFF:
-                                        this.updateDiff(bufnr);
+                                        this.diff$.next(bufnr);
                                         break;
-                                    case NOTIFY_BLAME:
-                                        this.updateBlame(bufnr);
+                                    case NOTIFY_CLEAR_BLAME:
+                                        this.clearBlameLine(bufnr, args[1]);
                                         break;
                                     default:
                                         break;
@@ -89,6 +73,182 @@ var App = /** @class */ (function () {
                                 return [2 /*return*/];
                             });
                         }); });
+                        this.plugin.nvim.on('request', function (method, args, res) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                            var bufnr;
+                            return tslib_1.__generator(this, function (_a) {
+                                bufnr = args[0];
+                                if (bufnr === -1 || bufnr === undefined) {
+                                    return [2 /*return*/];
+                                }
+                                switch (method) {
+                                    case REQUEST_BLAME:
+                                        res.send(args);
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                return [2 /*return*/];
+                            });
+                        }); });
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    App.prototype.startSubscribeDiff = function () {
+        var _this = this;
+        return this.diff$.pipe(operators_1.switchMap(function (bufnr) { return rxjs_1.timer(constant_1.delayGap).pipe(operators_1.switchMap(function () { return rxjs_1.from(_this.getBufferInfo(bufnr)); }), operators_1.filter(function (bufInfo) { return bufInfo !== undefined; }), operators_1.switchMap(function (bufInfo) {
+            _this.createDiffTmpFiles();
+            return rxjs_1.from(util_1.gitDiff({
+                bufferInfo: bufInfo,
+                fromFile: _this.fromDiffFile,
+                toFile: _this.toDiffFile,
+                logger: _this.logger
+            })).pipe(operators_1.map(function (res) { return ({
+                bufInfo: bufInfo,
+                blame: res.blame,
+                diff: res.diff,
+            }); }), operators_1.catchError(function (error) {
+                _this.logger.info('Current Buffer Info: ', {
+                    bufnr: bufInfo.bufnr,
+                    gitDir: bufInfo.gitDir,
+                    filePath: bufInfo.filePath,
+                    currentLine: bufInfo.currentLine,
+                });
+                _this.logger.error('Diff Error: ', error.message);
+                return rxjs_1.of(error);
+            }));
+        })); }), operators_1.mergeMap(function (_a) {
+            var bufInfo = _a.bufInfo, blame = _a.blame, diff = _a.diff;
+            return rxjs_1.from((function () { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+                var error_1;
+                return tslib_1.__generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            if (!bufInfo) {
+                                return [2 /*return*/];
+                            }
+                            _a.label = 1;
+                        case 1:
+                            _a.trys.push([1, 6, , 7]);
+                            // save diff
+                            this.diffs[bufInfo.bufnr] = diff;
+                            // upate diff sign
+                            return [4 /*yield*/, this.updateDiffSign(diff, bufInfo.bufnr)
+                                // update b:gitp_blame
+                            ];
+                        case 2:
+                            // upate diff sign
+                            _a.sent();
+                            // update b:gitp_blame
+                            return [4 /*yield*/, bufInfo.buffer.setVar('gitp_blame', blame)
+                                // update blame line
+                            ];
+                        case 3:
+                            // update b:gitp_blame
+                            _a.sent();
+                            // update blame line
+                            return [4 /*yield*/, this.updateBlameLine(blame, bufInfo)
+                                // trigger diff and blame update user event
+                            ];
+                        case 4:
+                            // update blame line
+                            _a.sent();
+                            // trigger diff and blame update user event
+                            return [4 /*yield*/, this.plugin.nvim.call('gitp#diff_and_blame_update')];
+                        case 5:
+                            // trigger diff and blame update user event
+                            _a.sent();
+                            return [3 /*break*/, 7];
+                        case 6:
+                            error_1 = _a.sent();
+                            return [2 /*return*/, error_1];
+                        case 7: return [2 /*return*/];
+                    }
+                });
+            }); })());
+        })).subscribe(function (error) {
+            if (error) {
+                _this.logger.error('Update Diff Signs Error: ', error);
+            }
+        });
+    };
+    /**
+     * clear blame virtual text except:
+     *
+     * 1. do not support virtual
+     * 2. do not have virtual set
+     * 3. at the same as before
+     */
+    App.prototype.clearBlameLine = function (bufnr, line) {
+        if (this.virtualId === undefined ||
+            this.blames[bufnr] === undefined ||
+            line === undefined ||
+            this.blames[bufnr].line === line) {
+            return;
+        }
+        this.blames[bufnr] = undefined;
+        var nvim = this.plugin.nvim;
+        nvim.call('nvim_buf_clear_namespace', [bufnr, this.virtualId, 0, -1]);
+    };
+    App.prototype.updateBlameLine = function (blame, bufInfo) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var nvim, enableVirtualText, bufnr, currentLine, mode, formtLine, blameText;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!blame || this.virtualId === undefined) {
+                            return [2 /*return*/];
+                        }
+                        nvim = this.plugin.nvim;
+                        return [4 /*yield*/, nvim.getVar('gitp_blame_virtual_text')];
+                    case 1:
+                        enableVirtualText = _a.sent();
+                        if (enableVirtualText !== 1) {
+                            return [2 /*return*/];
+                        }
+                        bufnr = bufInfo.bufnr, currentLine = bufInfo.currentLine;
+                        return [4 /*yield*/, nvim.call('mode')
+                            // do not update blame if same line, hash and mode as before
+                        ];
+                    case 2:
+                        mode = _a.sent();
+                        // do not update blame if same line, hash and mode as before
+                        if (this.blames[bufnr] !== undefined &&
+                            this.blames[bufnr].line === currentLine &&
+                            this.blames[bufnr].blame.hash === blame.hash &&
+                            this.blames[bufnr].mode === mode &&
+                            mode !== 'n') {
+                            return [2 /*return*/];
+                        }
+                        // save blame
+                        this.blames[bufnr] = {
+                            line: currentLine,
+                            blame: blame,
+                            mode: mode
+                        };
+                        // clear pre virtual text
+                        return [4 /*yield*/, nvim.call('nvim_buf_clear_namespace', [bufnr, this.virtualId, 0, -1])];
+                    case 3:
+                        // clear pre virtual text
+                        _a.sent();
+                        return [4 /*yield*/, nvim.getVar('gitp_blmae_format')];
+                    case 4:
+                        formtLine = _a.sent();
+                        blameText = constant_1.blameKeys.reduce(function (res, next) {
+                            return res.replace("%{" + next + "}", blame[next]);
+                        }, formtLine);
+                        // set new virtual text
+                        return [4 /*yield*/, nvim.call('nvim_buf_set_virtual_text', [
+                                bufnr,
+                                this.virtualId,
+                                currentLine - 1,
+                                [[blameText, 'GitPBlameLine']],
+                                {}
+                            ])];
+                    case 5:
+                        // set new virtual text
+                        _a.sent();
                         return [2 /*return*/];
                 }
             });
@@ -188,8 +348,8 @@ var App = /** @class */ (function () {
     };
     App.prototype.getBufferInfo = function (bufnr) {
         var _this = this;
-        return new Promise(function (resolve, reject) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
-            var nvim, absFilePath, gitDir, buffer, content;
+        return new Promise(function (resolve) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
+            var nvim, absFilePath, gitDir, filePath, buffer, currentLine, content;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -203,26 +363,36 @@ var App = /** @class */ (function () {
                         if (!fs_1.default.existsSync(absFilePath)) {
                             return [2 /*return*/, resolve()];
                         }
-                        return [4 /*yield*/, util_1.pcb(findup_1.default, [], false)(absFilePath, '.git')];
-                    case 2:
-                        gitDir = _a.sent();
-                        return [4 /*yield*/, this.getCurrentBuffer(bufnr)];
-                    case 3:
-                        buffer = _a.sent();
-                        return [4 /*yield*/, buffer.getLines()
+                        return [4 /*yield*/, util_1.pcb(findup_1.default, [], false)(absFilePath, '.git')
                             // .git dir do not exist
                         ];
-                    case 4:
-                        content = _a.sent();
+                    case 2:
+                        gitDir = _a.sent();
                         // .git dir do not exist
                         if (!gitDir || !fs_1.default.existsSync(path_1.default.join(gitDir, '.git'))) {
                             return [2 /*return*/, resolve()];
                         }
+                        filePath = path_1.default.relative(gitDir, absFilePath);
+                        // ignore if match prefix
+                        if (constant_1.ignorePrefix.some(function (prefix) { return filePath.startsWith(prefix); })) {
+                            return [2 /*return*/, resolve()];
+                        }
+                        return [4 /*yield*/, this.getCurrentBuffer(bufnr)];
+                    case 3:
+                        buffer = _a.sent();
+                        return [4 /*yield*/, nvim.call('line', '.')];
+                    case 4:
+                        currentLine = _a.sent();
+                        return [4 /*yield*/, buffer.getLines()];
+                    case 5:
+                        content = _a.sent();
                         resolve({
+                            buffer: buffer,
                             gitDir: gitDir,
-                            filePath: path_1.default.relative(gitDir, absFilePath),
+                            filePath: filePath,
                             absFilePath: absFilePath,
                             bufnr: bufnr,
+                            currentLine: currentLine,
                             content: content.join('\n') + '\n' // end newline
                         });
                         return [2 /*return*/];
@@ -266,36 +436,24 @@ var App = /** @class */ (function () {
             this.logger.error('Close File Fail: ', error);
         }
     };
-    App.prototype.updateDiffFile = function () {
+    // close tmp write stream and open new write stream
+    App.prototype.createDiffTmpFiles = function () {
         if (this.fromDiffFile && this.fromDiffFile.writable) {
-            this.logger.info('close from file');
             this.closeFile(this.fromDiffFile);
         }
         if (this.toDiffFile && this.toDiffFile.writable) {
-            this.logger.info('clsoe to file');
             this.closeFile(this.toDiffFile);
         }
         this.fromDiffFile = fs_1.default.createWriteStream(path_1.default.join(this.tempDir, TEMP_FROM_DIFF_FILE_NAME));
         this.toDiffFile = fs_1.default.createWriteStream(path_1.default.join(this.tempDir, TEMP_TO_DIFF_FILE_NAME));
     };
-    App.prototype.updateBlameFile = function () {
-        if (this.fromBlameFile) {
-            this.closeFile(this.fromBlameFile);
-        }
+    App.prototype.createBlameTmpFiles = function () {
         if (this.toBlameFile) {
             this.closeFile(this.toBlameFile);
         }
-        this.fromBlameFile = fs_1.default.createWriteStream(path_1.default.join(this.tempDir, TEMP_FROM_BLAME_FILE_NAME));
         this.toBlameFile = fs_1.default.createWriteStream(path_1.default.join(this.tempDir, TEMP_TO_BLAME_FILE_NAME));
     };
-    App.prototype.updateDiff = function (bufnr) {
-        this.diff$.next(bufnr);
-    };
-    App.prototype.updateBlame = function (bufnr) {
-        this.blame$.next(bufnr);
-    };
     App.prototype.destroy = function () {
-        this.blameSubscription.unsubscribe();
         this.diffSubscription.unsubscribe();
     };
     return App;
