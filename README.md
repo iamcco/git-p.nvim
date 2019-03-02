@@ -70,7 +70,16 @@ let g:gitp_modify_sign = '▣'
 let g:gitp_delete_top_sign = '▤'
 let g:gitp_delete_bottom_sign = '▤'
 let g:gitp_delete_top_and_bottom_sign = '▤'
+
+" let your sign column background same as line number column
+" highlight! link SignColumn LineNr
 ```
+
+## FAQ
+
+A. Why my diff sign update slow
+
+B. set updatetime to a small number like: `set updatetime=300`
 
 ## TODO
 

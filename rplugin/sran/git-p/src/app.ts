@@ -66,6 +66,10 @@ export default class App {
     // subscribe diff
     this.diffSubscription = this.startSubscribeDiff()
 
+    // trigger diff update
+    const bufnr: number = await nvim.call('bufnr', '%')
+    this.diff$.next(bufnr)
+
     // listen notification
     this.plugin.nvim.on('notification', async (method: string, args: any[]) => {
       const bufnr = args[0]

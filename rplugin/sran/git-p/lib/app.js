@@ -27,7 +27,7 @@ var App = /** @class */ (function () {
     }
     App.prototype.init = function () {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var _a, nvim, util, _b, hasVirtualText, _c;
+            var _a, nvim, util, _b, hasVirtualText, _c, bufnr;
             var _this = this;
             return tslib_1.__generator(this, function (_d) {
                 switch (_d.label) {
@@ -52,6 +52,10 @@ var App = /** @class */ (function () {
                     case 4:
                         // subscribe diff
                         this.diffSubscription = this.startSubscribeDiff();
+                        return [4 /*yield*/, nvim.call('bufnr', '%')];
+                    case 5:
+                        bufnr = _d.sent();
+                        this.diff$.next(bufnr);
                         // listen notification
                         this.plugin.nvim.on('notification', function (method, args) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
                             var bufnr;
