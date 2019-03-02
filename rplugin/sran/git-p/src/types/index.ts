@@ -26,6 +26,7 @@ export type BlameLine = {
   zone?: string
   lineNum?: string
   lineString?: string
+  commit?: string
   rawString: string
 }
 

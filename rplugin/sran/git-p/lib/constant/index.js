@@ -33,6 +33,7 @@ exports.blameKeys = [
     'time',
     'ago',
     'zone',
-    'lineNum'
+    'lineNum',
+    'commit'
 ];
 exports.emptyHash = '0000000000000000000000000000000000000000';

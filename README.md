@@ -36,6 +36,7 @@ highlight link GitPBlameLine GitPBlameLineHi
 " time: HH:mm:ss
 " ago: xxx ago
 " zone: +xxxx
+" commit: commit message
 " lineNum: line number
 let g:gitp_blmae_format = '    %{account} * %{ago}'
 
@@ -51,6 +52,7 @@ let g:gitp_blmae_format = '    %{account} * %{ago}'
 "    zone: string
 "    lineNum: string
 "    lineString: string
+"    commit: string
 "    rawString: string
 " }
 

@@ -1,5 +1,5 @@
 import { execFile } from 'child_process';
-import { GitParams, Diff, BlameLine } from '../types';
+import { GitParams, Diff, BlameLine, BufferInfo } from '../types';
 import { deleteBottomSymbol, modifySymbol, addSymbol, year, month, day, hour, minute, second, emptyHash } from '../constant';
 
 // cover cb type async function to promise
@@ -65,6 +65,8 @@ export async function gitDiff(params: GitParams): Promise<{ blame: BlameLine, di
         }
       )
 
+      const blameLine = await getBlame(blame, bufferInfo)
+
       // git diff exit with code 1 if there is difference
       const [diff] = await pcb(execFile, [1])(
         'git',
@@ -74,13 +76,42 @@ export async function gitDiff(params: GitParams): Promise<{ blame: BlameLine, di
         }
       )
       resolve({
-        blame: parseBlame(blame),
-        diff: parseDiff(diff)
+        blame: blameLine,
+        diff: parseDiff(diff),
       })
     } catch (error) {
       reject(error)
     }
   })
+}
+
+export async function getCommit(hash: string, cwd: string): Promise<string> {
+  if (hash === emptyHash) {
+    return 'Not Committed Yet'
+  }
+  const [commit]: [string] = await pcb(execFile)(
+    'git',
+    [
+      '--no-pager',
+      'log',
+      '--oneline',
+      '-n1',
+      hash
+    ],
+    {
+      cwd
+    }
+  )
+  return parseCommit(commit.trim())
+}
+
+/**
+ * commit line:
+ *
+ * d719e63 (HEAD -> master, origin/master, origin/HEAD) add git blame line support witch virtual text
+ */
+export function parseCommit(line: string): string {
+  return line.replace(/^[^ ]+\s+(\([^)]+\)\s?)?/, '')
 }
 
 /**
@@ -106,6 +137,12 @@ export function parseBlame(line: string): BlameLine {
     rawString: line,
   }
   return res
+}
+
+export async function getBlame(line: string, bufInfo: BufferInfo): Promise<BlameLine> {
+  const blame = parseBlame(line)
+  blame.commit = await getCommit(blame.hash, bufInfo.gitDir)
+  return blame
 }
 
 export function align(str: string | number): string {

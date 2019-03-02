@@ -22,6 +22,7 @@ export declare type BlameLine = {
     zone?: string;
     lineNum?: string;
     lineString?: string;
+    commit?: string;
     rawString: string;
 };
 export declare type BufferInfo = {

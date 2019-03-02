@@ -1,9 +1,16 @@
-import { GitParams, Diff, BlameLine } from '../types';
+import { GitParams, Diff, BlameLine, BufferInfo } from '../types';
 export declare function pcb(cb: (...args: any[]) => void, codes?: Array<string | number>, isThrowError?: boolean): (...args: any[]) => Promise<any>;
 export declare function gitDiff(params: GitParams): Promise<{
     blame: BlameLine;
     diff: Diff;
 }>;
+export declare function getCommit(hash: string, cwd: string): Promise<string>;
+/**
+ * commit line:
+ *
+ * d719e63 (HEAD -> master, origin/master, origin/HEAD) add git blame line support witch virtual text
+ */
+export declare function parseCommit(line: string): string;
 /**
  * blame lines example:
  *
@@ -13,6 +20,7 @@ export declare function gitDiff(params: GitParams): Promise<{
  * ...
  */
 export declare function parseBlame(line: string): BlameLine;
+export declare function getBlame(line: string, bufInfo: BufferInfo): Promise<BlameLine>;
 export declare function align(str: string | number): string;
 export declare function ago(timestamp: string): string;
 export declare function dateFormat(timestamp: string, format: string): string;

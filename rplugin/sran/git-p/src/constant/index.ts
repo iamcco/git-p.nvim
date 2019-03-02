@@ -36,7 +36,8 @@ export const blameKeys = [
   'time',
   'ago',
   'zone',
-  'lineNum'
+  'lineNum',
+  'commit'
 ]
 
 export const emptyHash = '0000000000000000000000000000000000000000'

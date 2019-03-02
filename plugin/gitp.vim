@@ -16,7 +16,7 @@ set cpo&vim
 
 " format blame line
 if !exists('g:gitp_blmae_format')
-  let g:gitp_blmae_format = '    %{account} * %{ago}'
+  let g:gitp_blmae_format = '  %{account} ~ %{ago} / %{commit}'
 endif
 
 if !exists('g:gitp_blame_virtual_text')

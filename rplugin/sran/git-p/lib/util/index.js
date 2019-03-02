@@ -35,14 +35,14 @@ function gitDiff(params) {
         var _this = this;
         return tslib_1.__generator(this, function (_a) {
             return [2 /*return*/, new Promise(function (resolve, reject) { return tslib_1.__awaiter(_this, void 0, void 0, function () {
-                    var bufferInfo, fromFile, toFile, indexFile, blame, diff, error_1;
+                    var bufferInfo, fromFile, toFile, indexFile, blame, blameLine, diff, error_1;
                     return tslib_1.__generator(this, function (_a) {
                         switch (_a.label) {
                             case 0:
                                 bufferInfo = params.bufferInfo, fromFile = params.fromFile, toFile = params.toFile;
                                 _a.label = 1;
                             case 1:
-                                _a.trys.push([1, 7, , 8]);
+                                _a.trys.push([1, 8, , 9]);
                                 return [4 /*yield*/, pcb(child_process_1.execFile)('git', ['--no-pager', 'show', ":" + bufferInfo.filePath], {
                                         cwd: bufferInfo.gitDir,
                                     })
@@ -74,26 +74,29 @@ function gitDiff(params) {
                                         bufferInfo.filePath
                                     ], {
                                         cwd: bufferInfo.gitDir
-                                    })
-                                    // git diff exit with code 1 if there is difference
-                                ];
+                                    })];
                             case 5:
                                 blame = (_a.sent())[0];
+                                return [4 /*yield*/, getBlame(blame, bufferInfo)
+                                    // git diff exit with code 1 if there is difference
+                                ];
+                            case 6:
+                                blameLine = _a.sent();
                                 return [4 /*yield*/, pcb(child_process_1.execFile, [1])('git', ['--no-pager', 'diff', '-p', '-U0', '--no-color', fromFile.path, toFile.path], {
                                         cwd: bufferInfo.gitDir
                                     })];
-                            case 6:
+                            case 7:
                                 diff = (_a.sent())[0];
                                 resolve({
-                                    blame: parseBlame(blame),
-                                    diff: parseDiff(diff)
+                                    blame: blameLine,
+                                    diff: parseDiff(diff),
                                 });
-                                return [3 /*break*/, 8];
-                            case 7:
+                                return [3 /*break*/, 9];
+                            case 8:
                                 error_1 = _a.sent();
                                 reject(error_1);
-                                return [3 /*break*/, 8];
-                            case 8: return [2 /*return*/];
+                                return [3 /*break*/, 9];
+                            case 9: return [2 /*return*/];
                         }
                     });
                 }); })];
@@ -101,6 +104,41 @@ function gitDiff(params) {
     });
 }
 exports.gitDiff = gitDiff;
+function getCommit(hash, cwd) {
+    return tslib_1.__awaiter(this, void 0, void 0, function () {
+        var commit;
+        return tslib_1.__generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (hash === constant_1.emptyHash) {
+                        return [2 /*return*/, 'Not Committed Yet'];
+                    }
+                    return [4 /*yield*/, pcb(child_process_1.execFile)('git', [
+                            '--no-pager',
+                            'log',
+                            '--oneline',
+                            '-n1',
+                            hash
+                        ], {
+                            cwd: cwd
+                        })];
+                case 1:
+                    commit = (_a.sent())[0];
+                    return [2 /*return*/, parseCommit(commit.trim())];
+            }
+        });
+    });
+}
+exports.getCommit = getCommit;
+/**
+ * commit line:
+ *
+ * d719e63 (HEAD -> master, origin/master, origin/HEAD) add git blame line support witch virtual text
+ */
+function parseCommit(line) {
+    return line.replace(/^[^ ]+\s+(\([^)]+\)\s?)?/, '');
+}
+exports.parseCommit = parseCommit;
 /**
  * blame lines example:
  *
@@ -126,6 +164,23 @@ function parseBlame(line) {
     return res;
 }
 exports.parseBlame = parseBlame;
+function getBlame(line, bufInfo) {
+    return tslib_1.__awaiter(this, void 0, void 0, function () {
+        var blame, _a;
+        return tslib_1.__generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    blame = parseBlame(line);
+                    _a = blame;
+                    return [4 /*yield*/, getCommit(blame.hash, bufInfo.gitDir)];
+                case 1:
+                    _a.commit = _b.sent();
+                    return [2 /*return*/, blame];
+            }
+        });
+    });
+}
+exports.getBlame = getBlame;
 function align(str) {
     return ("" + str).replace(/^(\d)$/, '0$1');
 }
