@@ -37,3 +37,4 @@ exports.blameKeys = [
     'commit'
 ];
 exports.emptyHash = '0000000000000000000000000000000000000000';
+exports.maxBuffer = 10000 * 1024;

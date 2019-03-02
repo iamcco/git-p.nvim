@@ -21,3 +21,4 @@ export declare const year: number;
 export declare const month: number;
 export declare const blameKeys: string[];
 export declare const emptyHash = "0000000000000000000000000000000000000000";
+export declare const maxBuffer: number;

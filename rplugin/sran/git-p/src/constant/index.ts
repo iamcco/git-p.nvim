@@ -41,3 +41,5 @@ export const blameKeys = [
 ]
 
 export const emptyHash = '0000000000000000000000000000000000000000'
+
+export const maxBuffer = 10000 * 1024

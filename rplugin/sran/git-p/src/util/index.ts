@@ -1,6 +1,18 @@
 import { execFile } from 'child_process';
 import { GitParams, Diff, BlameLine, BufferInfo } from '../types';
-import { deleteBottomSymbol, modifySymbol, addSymbol, year, month, day, hour, minute, second, emptyHash } from '../constant';
+import {
+  deleteBottomSymbol,
+  modifySymbol,
+  addSymbol,
+  year,
+  month,
+  day,
+  hour,
+  minute,
+  second,
+  emptyHash,
+  maxBuffer
+} from '../constant';
 
 // cover cb type async function to promise
 export function pcb(
@@ -38,6 +50,7 @@ export async function gitDiff(params: GitParams): Promise<{ blame: BlameLine, di
         ['--no-pager', 'show', `:${bufferInfo.filePath}`],
         {
           cwd: bufferInfo.gitDir,
+          maxBuffer
         }
       )
 
@@ -61,7 +74,8 @@ export async function gitDiff(params: GitParams): Promise<{ blame: BlameLine, di
           bufferInfo.filePath
         ],
         {
-          cwd: bufferInfo.gitDir
+          cwd: bufferInfo.gitDir,
+          maxBuffer
         }
       )
 
@@ -72,7 +86,8 @@ export async function gitDiff(params: GitParams): Promise<{ blame: BlameLine, di
         'git',
         ['--no-pager', 'diff', '-p', '-U0', '--no-color', fromFile.path, toFile.path ],
         {
-          cwd: bufferInfo.gitDir
+          cwd: bufferInfo.gitDir,
+          maxBuffer
         }
       )
       resolve({
@@ -99,7 +114,8 @@ export async function getCommit(hash: string, cwd: string): Promise<string> {
       hash
     ],
     {
-      cwd
+      cwd,
+      maxBuffer
     }
   )
   return parseCommit(commit.trim())
@@ -123,17 +139,24 @@ export function parseCommit(line: string): string {
  * ...
  */
 export function parseBlame(line: string): BlameLine {
-  const reg = /^([^ ]+)\s+\((.+?)\s+(\d{10})\s+(.\d{4})\s+(\d+)\)\s?(.*$)/
-  const m = line.trim().match(reg) || {}
+  let items = line.split('(')
+  const hash = items[0].split(' ')[0]
+  items = items.slice(1).join('(').split(')')
+  const lineString = items[1].trim()
+  let infos = items[0].split(' ')
+  const lineNum = infos.pop()
+  const zone = infos.pop()
+  const timestamp = infos.pop()
+  const account = infos.join(' ')
   const res = {
-    hash: m[1],
-    account: m[1] === emptyHash ? 'You' : m[2],
-    date: dateFormat(m[3], 'YYYY/HH/DD'),
-    time: dateFormat(m[3], 'HH:mm:ss'),
-    ago: ago(m[3]),
-    zone: m[4],
-    lineNum: m[5],
-    lineString: m[6],
+    hash,
+    account: hash === emptyHash ? 'You' : account,
+    date: dateFormat(timestamp, 'YYYY/HH/DD'),
+    time: dateFormat(timestamp, 'HH:mm:ss'),
+    ago: ago(timestamp),
+    zone,
+    lineNum,
+    lineString,
     rawString: line,
   }
   return res

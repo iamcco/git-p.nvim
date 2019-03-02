@@ -45,6 +45,7 @@ function gitDiff(params) {
                                 _a.trys.push([1, 8, , 9]);
                                 return [4 /*yield*/, pcb(child_process_1.execFile)('git', ['--no-pager', 'show', ":" + bufferInfo.filePath], {
                                         cwd: bufferInfo.gitDir,
+                                        maxBuffer: constant_1.maxBuffer
                                     })
                                     // write index file to tmp file
                                 ];
@@ -73,7 +74,8 @@ function gitDiff(params) {
                                         toFile.path,
                                         bufferInfo.filePath
                                     ], {
-                                        cwd: bufferInfo.gitDir
+                                        cwd: bufferInfo.gitDir,
+                                        maxBuffer: constant_1.maxBuffer
                                     })];
                             case 5:
                                 blame = (_a.sent())[0];
@@ -83,7 +85,8 @@ function gitDiff(params) {
                             case 6:
                                 blameLine = _a.sent();
                                 return [4 /*yield*/, pcb(child_process_1.execFile, [1])('git', ['--no-pager', 'diff', '-p', '-U0', '--no-color', fromFile.path, toFile.path], {
-                                        cwd: bufferInfo.gitDir
+                                        cwd: bufferInfo.gitDir,
+                                        maxBuffer: constant_1.maxBuffer
                                     })];
                             case 7:
                                 diff = (_a.sent())[0];
@@ -120,7 +123,8 @@ function getCommit(hash, cwd) {
                             '-n1',
                             hash
                         ], {
-                            cwd: cwd
+                            cwd: cwd,
+                            maxBuffer: constant_1.maxBuffer
                         })];
                 case 1:
                     commit = (_a.sent())[0];
@@ -148,17 +152,24 @@ exports.parseCommit = parseCommit;
  * ...
  */
 function parseBlame(line) {
-    var reg = /^([^ ]+)\s+\((.+?)\s+(\d{10})\s+(.\d{4})\s+(\d+)\)\s?(.*$)/;
-    var m = line.trim().match(reg) || {};
+    var items = line.split('(');
+    var hash = items[0].split(' ')[0];
+    items = items.slice(1).join('(').split(')');
+    var lineString = items[1].trim();
+    var infos = items[0].split(' ');
+    var lineNum = infos.pop();
+    var zone = infos.pop();
+    var timestamp = infos.pop();
+    var account = infos.join(' ');
     var res = {
-        hash: m[1],
-        account: m[1] === constant_1.emptyHash ? 'You' : m[2],
-        date: dateFormat(m[3], 'YYYY/HH/DD'),
-        time: dateFormat(m[3], 'HH:mm:ss'),
-        ago: ago(m[3]),
-        zone: m[4],
-        lineNum: m[5],
-        lineString: m[6],
+        hash: hash,
+        account: hash === constant_1.emptyHash ? 'You' : account,
+        date: dateFormat(timestamp, 'YYYY/HH/DD'),
+        time: dateFormat(timestamp, 'HH:mm:ss'),
+        ago: ago(timestamp),
+        zone: zone,
+        lineNum: lineNum,
+        lineString: lineString,
         rawString: line,
     };
     return res;
