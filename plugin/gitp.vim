@@ -26,7 +26,7 @@ endif
 function! s:init() abort
   augroup GitP
     autocmd!
-    autocmd CursorHold,CursorHoldI,TextChanged,TextChangedI * call sran#rpc#notify('git-p-diff', bufnr('%'))
+    autocmd FocusGained,CursorHold,CursorHoldI,TextChanged,TextChangedI * call sran#rpc#notify('git-p-diff', bufnr('%'))
     autocmd CursorMoved * call sran#rpc#notify('git-p-clear-blame', bufnr('%'), line('.'))
   augroup END
 endfunction
