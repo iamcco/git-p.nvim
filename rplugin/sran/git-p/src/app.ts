@@ -151,6 +151,8 @@ export default class App {
             await this.updateDiffSign(diff, bufInfo.bufnr)
             // update b:gitp_blame
             await bufInfo.buffer.setVar('gitp_blame', blame)
+            // update b:gitp_diff_state
+            await bufInfo.buffer.setVar('gitp_diff_state', diff.state)
             // update blame line
             await this.updateBlameLine(blame, bufInfo)
             // trigger diff and blame update user event

@@ -134,7 +134,7 @@ var App = /** @class */ (function () {
                             }
                             _a.label = 1;
                         case 1:
-                            _a.trys.push([1, 6, , 7]);
+                            _a.trys.push([1, 7, , 8]);
                             // save diff
                             this.diffs[bufInfo.bufnr] = diff;
                             // upate diff sign
@@ -146,28 +146,35 @@ var App = /** @class */ (function () {
                             _a.sent();
                             // update b:gitp_blame
                             return [4 /*yield*/, bufInfo.buffer.setVar('gitp_blame', blame)
-                                // update blame line
+                                // update b:gitp_diff_state
                             ];
                         case 3:
                             // update b:gitp_blame
+                            _a.sent();
+                            // update b:gitp_diff_state
+                            return [4 /*yield*/, bufInfo.buffer.setVar('gitp_diff_state', diff.state)
+                                // update blame line
+                            ];
+                        case 4:
+                            // update b:gitp_diff_state
                             _a.sent();
                             // update blame line
                             return [4 /*yield*/, this.updateBlameLine(blame, bufInfo)
                                 // trigger diff and blame update user event
                             ];
-                        case 4:
+                        case 5:
                             // update blame line
                             _a.sent();
                             // trigger diff and blame update user event
                             return [4 /*yield*/, this.plugin.nvim.call('gitp#diff_and_blame_update')];
-                        case 5:
+                        case 6:
                             // trigger diff and blame update user event
                             _a.sent();
-                            return [3 /*break*/, 7];
-                        case 6:
+                            return [3 /*break*/, 8];
+                        case 7:
                             error_1 = _a.sent();
                             return [2 /*return*/, error_1];
-                        case 7: return [2 /*return*/];
+                        case 8: return [2 /*return*/];
                     }
                 });
             }); })());

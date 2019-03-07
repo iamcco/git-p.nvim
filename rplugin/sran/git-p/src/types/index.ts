@@ -10,11 +10,18 @@ export type DiffLine = {
   diffKey: string
 }
 
+export type State = {
+  delete: number
+  add: number
+  modify: number
+}
+
 export type Diff = {
   info: DiffInfo
   lines: {
     [lineNum: string]: DiffLine
-  }
+  },
+  state: State
 }
 
 export type BlameLine = {

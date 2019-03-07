@@ -236,9 +236,14 @@ export function parseDiff(diffStr: string): Diff {
   // diff info
   const diff: Diff = {
     info: {},
-    lines: {}
+    lines: {},
+    state: {
+      delete: 0,
+      add: 0,
+      modify: 0
+    }
   }
-  const { info, lines } = diff
+  const { info, lines, state } = diff
 
   // current diff key
   let diffKey: string
@@ -265,6 +270,14 @@ export function parseDiff(diffStr: string): Diff {
       .split(/\s+/)
       .map(str => str.slice(1).split(','))
 
+    const deleteCount = parseInt(`${pres[1] || 1}`, 10)
+    const addCount = parseInt(`${nows[1] || 1}`, 10)
+    const lineNum = parseInt(nows[0], 10)
+
+
+    state.delete += deleteCount
+    state.add += addCount
+
     // delete
     if (nows[1] === '0') {
       lines[nows[0]] = {
@@ -272,10 +285,6 @@ export function parseDiff(diffStr: string): Diff {
         diffKey
       }
     } else {
-      const deleteCount = parseInt(`${pres[1] || 1}`, 10)
-      const addCount = parseInt(`${nows[1] || 1}`, 10)
-      const lineNum = parseInt(nows[0], 10)
-
       for (let i = 0; i < addCount; i++) {
         // delete and add at the same line
         if (i < deleteCount) {
@@ -283,6 +292,7 @@ export function parseDiff(diffStr: string): Diff {
             operate: modifySymbol,
             diffKey
           }
+          state.modify += 1
         } else {
           // add new line
           lines[lineNum + i] = {
@@ -293,5 +303,10 @@ export function parseDiff(diffStr: string): Diff {
       }
     }
   }
+
+  // update delete and add lines
+  state.delete -= state.modify
+  state.add -= state.modify
+
   return diff
 }

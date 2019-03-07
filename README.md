@@ -40,9 +40,9 @@ highlight link GitPBlameLine GitPBlameLineHi
 " lineNum: line number
 let g:gitp_blmae_format = '    %{account} * %{ago}'
 
-" show blame on statusline git-p.nvim will udpate b:gitp_blame variable
-" and trigger GitPDiffAndBlameUpdate event when blame update
-" so you can use this info to display on statusline
+" statusline integrated: b:gitp_blame, b:gitp_diff_state
+"
+" blame info:
 " b:gitp_blame = {
 "    hash: string
 "    account: string
@@ -55,6 +55,11 @@ let g:gitp_blmae_format = '    %{account} * %{ago}'
 "    commit: string
 "    rawString: string
 " }
+"
+" diff lines stat:
+" b:gitp_diff_state = { delete: number, add: number, modify: number }
+"
+" will trigger GitPDiffAndBlameUpdate event after these variables updated
 
 " use custom highlight for diff sign
 " change the GitPAddHi GitPModifyHi GitPDeleteHi to your highlight group

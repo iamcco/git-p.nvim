@@ -260,9 +260,14 @@ function parseDiff(diffStr) {
     // diff info
     var diff = {
         info: {},
-        lines: {}
+        lines: {},
+        state: {
+            delete: 0,
+            add: 0,
+            modify: 0
+        }
     };
-    var info = diff.info, lines = diff.lines;
+    var info = diff.info, lines = diff.lines, state = diff.state;
     // current diff key
     var diffKey;
     for (var _i = 0, allLines_1 = allLines; _i < allLines_1.length; _i++) {
@@ -284,6 +289,11 @@ function parseDiff(diffStr) {
         var _a = diffKey
             .split(/\s+/)
             .map(function (str) { return str.slice(1).split(','); }), pres = _a[0], nows = _a[1];
+        var deleteCount = parseInt("" + (pres[1] || 1), 10);
+        var addCount = parseInt("" + (nows[1] || 1), 10);
+        var lineNum = parseInt(nows[0], 10);
+        state.delete += deleteCount;
+        state.add += addCount;
         // delete
         if (nows[1] === '0') {
             lines[nows[0]] = {
@@ -292,9 +302,6 @@ function parseDiff(diffStr) {
             };
         }
         else {
-            var deleteCount = parseInt("" + (pres[1] || 1), 10);
-            var addCount = parseInt("" + (nows[1] || 1), 10);
-            var lineNum = parseInt(nows[0], 10);
             for (var i = 0; i < addCount; i++) {
                 // delete and add at the same line
                 if (i < deleteCount) {
@@ -302,6 +309,7 @@ function parseDiff(diffStr) {
                         operate: constant_1.modifySymbol,
                         diffKey: diffKey
                     };
+                    state.modify += 1;
                 }
                 else {
                     // add new line
@@ -313,6 +321,9 @@ function parseDiff(diffStr) {
             }
         }
     }
+    // update delete and add lines
+    state.delete -= state.modify;
+    state.add -= state.modify;
     return diff;
 }
 exports.parseDiff = parseDiff;

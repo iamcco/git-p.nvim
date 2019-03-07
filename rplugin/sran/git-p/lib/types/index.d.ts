@@ -7,11 +7,17 @@ export declare type DiffLine = {
     operate: '-' | '_' | '[' | '+' | '~';
     diffKey: string;
 };
+export declare type State = {
+    delete: number;
+    add: number;
+    modify: number;
+};
 export declare type Diff = {
     info: DiffInfo;
     lines: {
         [lineNum: string]: DiffLine;
     };
+    state: State;
 };
 export declare type BlameLine = {
     hash?: string;
