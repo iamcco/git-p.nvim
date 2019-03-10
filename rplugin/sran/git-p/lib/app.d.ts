@@ -11,6 +11,8 @@ export default class App {
     private virtualId;
     private blames;
     private diffs;
+    private dpBuffer;
+    private dpWindow;
     constructor(plugin: Plugin);
     private init;
     private startSubscribeDiff;
@@ -24,10 +26,14 @@ export default class App {
     private clearBlameLine;
     private updateBlameLine;
     private updateDiffSign;
+    private showDiffPreview;
     private getBufferInfo;
     private getCurrentBuffer;
     private closeFile;
     createDiffTmpFiles(): void;
     private createBlameTmpFiles;
     destroy(): void;
+    private closeDiffPreview;
+    private createBuffer;
+    private createWin;
 }
