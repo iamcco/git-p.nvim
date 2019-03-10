@@ -1,13 +1,14 @@
 # git-p.nvim
 
-> it only support vim >= 8.1 and latest neovim
+> it only support neovim with floating window feature
 
 Git plus for (neo)vim
 
-- fast async update
-- use virtual text to display line blame (only neovim support)
+- diff sign fast async update
+- use virtual text to display line blame
+- show change with float window
 
-![image](https://user-images.githubusercontent.com/5492542/53678420-d20b7400-3cf9-11e9-9ac6-18f3b6cbfb6e.png)
+[![image](https://user-images.githubusercontent.com/5492542/54088981-bc9fe500-439e-11e9-919b-71ef32ef35be.png)](https://asciinema.org/a/bjwwsMAMXT35v4l5wu7o2X9a6)
 
 ## Install
 
