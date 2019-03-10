@@ -28,7 +28,9 @@ function! s:init() abort
     autocmd!
     autocmd FocusGained,CursorHold,CursorHoldI,TextChanged,TextChangedI * call sran#rpc#notify('git-p-diff', bufnr('%'))
     autocmd CursorMoved * call sran#rpc#notify('git-p-clear-blame', bufnr('%'), line('.'))
+    autocmd CursorMoved,CursorMovedI * call sran#rpc#notify('git-p-close-diff-preview', bufnr('%'))
   augroup END
+  nnoremap <Plug>(git-p-diff-preview) :call sran#rpc#notify('git-p-diff-preview', bufnr('%'), line('.'))<Esc>
 endfunction
 
 function! s:sign_define(sign, symbol, default_symbol, hi) abort
@@ -46,6 +48,9 @@ highlight default link GitPModify             GitPModifyHi
 highlight default link GitPDeleteTop          GitPDeleteHi
 highlight default link GitPDeleteBottom       GitPDeleteHi
 highlight default link GitPDeleteTopAndBottom GitPDeleteHi
+
+" diff preview window highlight group
+highlight default link GitPDiffFloat Pmenu
 
 " blame line highlight groups
 highlight GitPBlameLineHi guifg=#606060 ctermfg=60

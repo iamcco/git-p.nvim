@@ -1,3 +1,13 @@
+" close floating window by id
+function! gitp#close_win(id) abort
+  let winnr = win_id2win(a:id)
+  if winnr > 0
+    execute winnr.'wincmd c'
+    return 1
+  endif
+  return 0
+endfunction
+
 " get signs by bufnr
 function! gitp#get_signs(bufnr) abort
   redir => l:signlines

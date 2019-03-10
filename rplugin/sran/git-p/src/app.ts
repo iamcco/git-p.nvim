@@ -1,6 +1,7 @@
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
+import { Buffer, Window } from 'neovim';
 import Plugin from 'sran.nvim';
 import { Subject, Subscription, from, of, timer } from 'rxjs';
 import { switchMap, map, catchError, filter, mergeMap } from 'rxjs/operators';
@@ -23,7 +24,9 @@ const TEMP_TO_DIFF_FILE_NAME: string = 'git-p-diff.tmp'
 const TEMP_TO_BLAME_FILE_NAME: string = 'git-p-blame.tmp'
 
 const NOTIFY_DIFF = 'git-p-diff'
+const NOTIFY_DIFF_PREVIEW = 'git-p-diff-preview'
 const NOTIFY_CLEAR_BLAME = 'git-p-clear-blame'
+const NOTIFY_CLOSE_DIFF_PREVIEW = 'git-p-close-diff-preview'
 const REQUEST_BLAME = 'git-p-r-blame'
 
 export default class App {
@@ -47,6 +50,9 @@ export default class App {
   private diffs: {
     [bufnr: string]: Diff
   } = {}
+  // info buffer
+  private dpBuffer: Buffer
+  private dpWindow: Window
 
   constructor(private plugin: Plugin) {
     this.init()
@@ -80,8 +86,14 @@ export default class App {
         case NOTIFY_DIFF:
           this.diff$.next(bufnr)
           break;
+        case NOTIFY_DIFF_PREVIEW:
+          this.showDiffPreview(bufnr, args[1])
+          break;
         case NOTIFY_CLEAR_BLAME:
           this.clearBlameLine(bufnr, args[1])
+          break;
+        case NOTIFY_CLOSE_DIFF_PREVIEW:
+          this.closeDiffPreview()
           break;
         default:
           break;
@@ -241,7 +253,9 @@ export default class App {
       return
     }
     const { nvim } = this.plugin
-    const { lines } = diff;
+    const lines = {
+      ...(diff.lines || {})
+    }
     /**
      * signsRaw:
      *
@@ -328,6 +342,53 @@ export default class App {
         })
       }
     }
+  }
+
+  private async showDiffPreview(bufnr: number, line: number) {
+    const { nvim } = this.plugin
+    const currentLine = await nvim.call('line', '.') as number
+    if (line !== currentLine) {
+      return
+    }
+    const currentBufnr = await nvim.call('bufnr', '%') as number
+    if (bufnr !== currentBufnr) {
+      return
+    }
+    const diff = this.diffs[bufnr]
+    if (!diff) {
+      return
+    }
+    const { lines, info } = diff
+    if (!lines[line]) {
+      return
+    }
+    const diffKey = lines[line].diffKey
+    const previewLines = info[diffKey]
+    const winnr = await nvim.call('winnr')
+    const screenWidth = await nvim.getOption('columns') as number
+    const screenHeight = await nvim.getOption('lines') as number
+    const pos = await nvim.call('win_screenpos', winnr) as [number, number]
+    const winTop = await nvim.call('winline') as number
+    const col = await nvim.call('col', '.') as number
+    const wincol = await nvim.call('wincol') as number
+    const winLeft = wincol - col - 1
+    const maxHeight = screenHeight - pos[0] - winTop
+    const buffer = await this.createBuffer()
+    const eventIgnore = await nvim.getOption('eventignore') as string
+    await nvim.setOption('eventignore', 'all')
+    try {
+      await this.createWin(
+        buffer.id,
+        screenWidth - pos[1] - winLeft,
+        Math.min(maxHeight, previewLines.length),
+        screenHeight - maxHeight - 1,
+        pos[1] + winLeft
+      )
+      await buffer.replace(previewLines, 0)
+    } catch (error) {
+      this.logger.error('Show Diff Preview Error: ', error)
+    }
+    await nvim.setOption('eventignore', eventIgnore)
   }
 
   private getBufferInfo(bufnr: number): Promise<undefined | BufferInfo> {
@@ -420,4 +481,88 @@ export default class App {
   public destroy() {
     this.diffSubscription.unsubscribe()
   }
+
+  private async closeDiffPreview() {
+    if (this.dpWindow === undefined) {
+      return
+    }
+    const dpWindow = this.dpWindow
+    this.dpWindow = undefined
+    const { nvim } = this.plugin
+    const isSupportWinClose = await nvim.call('exists', '*nvim_win_close')
+    if (isSupportWinClose) {
+      await nvim.call('nvim_win_close', [dpWindow.id, true])
+    } else {
+      await nvim.call('gitp#close_win', dpWindow.id)
+    }
+  }
+
+  private async createBuffer() {
+    const { dpBuffer, plugin } = this
+    if (dpBuffer) {
+      return dpBuffer
+    }
+    const { nvim } = plugin
+    const bufnr = await nvim.call('nvim_create_buf', [0, 1])
+    const buffers = await nvim.buffers
+    buffers.some(b => {
+      if (bufnr === b.id) {
+        this.dpBuffer = b
+        return true;
+      }
+      return false;
+    })
+    await this.dpBuffer.setOption('buftype', 'nofile')
+    await this.dpBuffer.setOption('filetype', 'diff')
+    return this.dpBuffer
+  }
+
+  private async createWin(
+    bufnr: number,
+    width: number,
+    height: number,
+    row: number,
+    col: number
+  ) {
+    const { nvim } = this.plugin
+    try {
+      const winnr = await nvim.call(
+        'nvim_open_win',
+        [
+          bufnr,
+          false,
+          width,
+          height,
+          {
+            relative: 'editor',
+            anchor: 'NW',
+            focusable: false,
+            row,
+            col
+          }
+        ]
+      )
+      const windows = await nvim.windows
+      windows.some(w => {
+        if (w.id === winnr) {
+          this.dpWindow = w
+          return true
+        }
+        return false
+      })
+
+      await this.dpWindow.setOption('number', false)
+      await this.dpWindow.setOption('relativenumber', false)
+      await this.dpWindow.setOption('cursorline', false)
+      await this.dpWindow.setOption('cursorcolumn', false)
+      await this.dpWindow.setOption('conceallevel', 2)
+      await this.dpWindow.setOption('signcolumn', 'no')
+      await this.dpWindow.setOption('winhighlight', 'Normal:GitPDiffFloat')
+
+      return this.dpWindow
+    } catch (error) {
+      this.logger.error('Create Window Error: ', error)
+    }
+  }
+
 }

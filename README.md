@@ -78,6 +78,13 @@ let g:gitp_delete_top_and_bottom_sign = '▤'
 
 " let your sign column background same as line number column
 " highlight! link SignColumn LineNr
+
+" use <leader>d to display change
+nmap <leader>d <Plug>(git-p-diff-preview)
+
+" use custom highlight for float diff preview window
+" change Pmenu to your highlight group
+highlight link GitPDiffFloat Pmenu
 ```
 
 ## FAQ
