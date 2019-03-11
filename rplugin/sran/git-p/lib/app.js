@@ -418,7 +418,7 @@ var App = /** @class */ (function () {
                         return [4 /*yield*/, nvim.call('wincol')];
                     case 9:
                         wincol = _a.sent();
-                        winLeft = wincol - col - 1;
+                        winLeft = wincol - col - 2;
                         maxHeight = screenHeight - pos[0] - winTop;
                         return [4 /*yield*/, this.createBuffer()];
                     case 10:

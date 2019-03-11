@@ -374,7 +374,7 @@ export default class App {
     const winTop = await nvim.call('winline') as number
     const col = await nvim.call('col', '.') as number
     const wincol = await nvim.call('wincol') as number
-    const winLeft = wincol - col - 1
+    const winLeft = wincol - col - 2
     const maxHeight = screenHeight - pos[0] - winTop
     const buffer = await this.createBuffer()
     const eventIgnore = await nvim.getOption('eventignore') as string
