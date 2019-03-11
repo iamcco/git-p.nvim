@@ -371,6 +371,9 @@ var App = /** @class */ (function () {
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        if (this.dpWindow !== undefined) {
+                            return [2 /*return*/];
+                        }
                         nvim = this.plugin.nvim;
                         return [4 /*yield*/, nvim.call('line', '.')];
                     case 1:

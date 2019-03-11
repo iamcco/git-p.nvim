@@ -345,6 +345,9 @@ export default class App {
   }
 
   private async showDiffPreview(bufnr: number, line: number) {
+    if (this.dpWindow !== undefined) {
+      return
+    }
     const { nvim } = this.plugin
     const currentLine = await nvim.call('line', '.') as number
     if (line !== currentLine) {
