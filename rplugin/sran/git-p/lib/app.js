@@ -393,7 +393,10 @@ var App = /** @class */ (function () {
                         }
                         lines = diff.lines, info = diff.info;
                         if (!lines[line]) {
-                            return [2 /*return*/];
+                            if (line !== 1 || !lines[0]) {
+                                return [2 /*return*/];
+                            }
+                            line = 0;
                         }
                         diffKey = lines[line].diffKey;
                         previewLines = info[diffKey];

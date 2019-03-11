@@ -363,7 +363,10 @@ export default class App {
     }
     const { lines, info } = diff
     if (!lines[line]) {
-      return
+      if (line !== 1 || !lines[0]) {
+        return
+      }
+      line = 0
     }
     const diffKey = lines[line].diffKey
     const previewLines = info[diffKey]
@@ -576,5 +579,4 @@ export default class App {
       this.logger.error('Create Window Error: ', error)
     }
   }
-
 }
