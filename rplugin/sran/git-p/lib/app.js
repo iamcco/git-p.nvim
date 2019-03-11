@@ -367,7 +367,7 @@ var App = /** @class */ (function () {
     };
     App.prototype.showDiffPreview = function (bufnr, line) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var nvim, currentLine, currentBufnr, diff, lines, info, diffKey, previewLines, winnr, screenWidth, screenHeight, pos, winTop, col, wincol, winLeft, maxHeight, buffer, eventIgnore, error_2;
+            var nvim, currentLine, currentBufnr, diff, lines, info, diffKey, previewLines, winnr, screenWidth, screenHeight, pos, winTop, col, wincol, winLeft, maxHeight, row, anchor, buffer, eventIgnore, error_2;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -420,6 +420,13 @@ var App = /** @class */ (function () {
                         wincol = _a.sent();
                         winLeft = wincol - col - 2;
                         maxHeight = screenHeight - pos[0] - winTop;
+                        row = screenHeight - maxHeight - 1;
+                        anchor = 'NW';
+                        if (previewLines.length > maxHeight && maxHeight / screenHeight < 0.5) {
+                            maxHeight = screenHeight - maxHeight - 2;
+                            anchor = 'SW';
+                            row -= 1;
+                        }
                         return [4 /*yield*/, this.createBuffer()];
                     case 10:
                         buffer = _a.sent();
@@ -432,7 +439,7 @@ var App = /** @class */ (function () {
                         _a.label = 13;
                     case 13:
                         _a.trys.push([13, 16, , 17]);
-                        return [4 /*yield*/, this.createWin(buffer.id, screenWidth - pos[1] - winLeft, Math.min(maxHeight, previewLines.length), screenHeight - maxHeight - 1, pos[1] + winLeft)];
+                        return [4 /*yield*/, this.createWin(buffer.id, screenWidth - pos[1] - winLeft, Math.min(maxHeight, previewLines.length), row, pos[1] + winLeft, anchor)];
                     case 14:
                         _a.sent();
                         return [4 /*yield*/, buffer.replace(previewLines, 0)];
@@ -626,7 +633,7 @@ var App = /** @class */ (function () {
             });
         });
     };
-    App.prototype.createWin = function (bufnr, width, height, row, col) {
+    App.prototype.createWin = function (bufnr, width, height, row, col, anchor) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
             var nvim, winnr_1, windows, error_3;
             var _this = this;
@@ -644,7 +651,7 @@ var App = /** @class */ (function () {
                                 height,
                                 {
                                     relative: 'editor',
-                                    anchor: 'NW',
+                                    anchor: anchor,
                                     focusable: false,
                                     row: row,
                                     col: col

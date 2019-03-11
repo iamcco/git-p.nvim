@@ -375,7 +375,14 @@ export default class App {
     const col = await nvim.call('col', '.') as number
     const wincol = await nvim.call('wincol') as number
     const winLeft = wincol - col - 2
-    const maxHeight = screenHeight - pos[0] - winTop
+    let maxHeight = screenHeight - pos[0] - winTop
+    let row = screenHeight - maxHeight - 1;
+    let anchor = 'NW'
+    if (previewLines.length > maxHeight && maxHeight / screenHeight < 0.5) {
+      maxHeight = screenHeight - maxHeight - 2
+      anchor = 'SW'
+      row -= 1
+    }
     const buffer = await this.createBuffer()
     const eventIgnore = await nvim.getOption('eventignore') as string
     await nvim.setOption('eventignore', 'all')
@@ -384,8 +391,9 @@ export default class App {
         buffer.id,
         screenWidth - pos[1] - winLeft,
         Math.min(maxHeight, previewLines.length),
-        screenHeight - maxHeight - 1,
-        pos[1] + winLeft
+        row,
+        pos[1] + winLeft,
+        anchor
       )
       await buffer.replace(previewLines, 0)
     } catch (error) {
@@ -525,7 +533,8 @@ export default class App {
     width: number,
     height: number,
     row: number,
-    col: number
+    col: number,
+    anchor: string
   ) {
     const { nvim } = this.plugin
     try {
@@ -538,7 +547,7 @@ export default class App {
           height,
           {
             relative: 'editor',
-            anchor: 'NW',
+            anchor,
             focusable: false,
             row,
             col
