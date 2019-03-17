@@ -546,9 +546,9 @@ export default class App {
         [
           bufnr,
           false,
-          width,
-          height,
           {
+            width,
+            height,
             relative: 'editor',
             anchor,
             focusable: false,

@@ -1,6 +1,6 @@
 # git-p.nvim
 
-> it only support neovim with floating window feature
+> it support neovim with floating window feature
 
 Git plus for (neo)vim
 
@@ -22,7 +22,7 @@ Plug 'iamcco/git-p.nvim'
 ## Usage & Config
 
 ```vim
-" enable virtual text to display blame and only neovim support this
+" enable virtual text to display blame and neovim support this
 " default is: 1
 let g:gitp_blame_virtual_text = 1
 

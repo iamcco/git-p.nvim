@@ -650,9 +650,9 @@ var App = /** @class */ (function () {
                         return [4 /*yield*/, nvim.call('nvim_open_win', [
                                 bufnr,
                                 false,
-                                width,
-                                height,
                                 {
+                                    width: width,
+                                    height: height,
                                     relative: 'editor',
                                     anchor: anchor,
                                     focusable: false,
