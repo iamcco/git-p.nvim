@@ -307,8 +307,9 @@ export default class App {
           const group = signGroups[lines[lnum].operate]
           // update diff sign if groupName is difference
           if (group !== groupName) {
+            // update exists sign do not use line param
             nvim.command(
-              `sign place ${signPrefix}${lnum} line=${lnum} name=${group} buffer=${bufnr}`
+              `sign place ${signPrefix}${lnum} name=${group} buffer=${bufnr}`
             )
           }
           delete lines[lnum]
@@ -336,6 +337,9 @@ export default class App {
       // upate it so it will cover on diff sign
       if (otherSigns[lnum]) {
         otherSigns[lnum].forEach(({ signId, groupName }) => {
+          nvim.command(
+            `sign unplace ${signId} buffer=${bufnr}`
+          )
           nvim.command(
             `sign place ${signId} line=${lnum} name=${groupName} buffer=${bufnr}`
           )

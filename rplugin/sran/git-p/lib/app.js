@@ -325,7 +325,8 @@ var App = /** @class */ (function () {
                                     group = constant_1.signGroups[lines[lnum].operate];
                                     // update diff sign if groupName is difference
                                     if (group !== groupName) {
-                                        nvim.command("sign place " + constant_1.signPrefix + lnum + " line=" + lnum + " name=" + group + " buffer=" + bufnr);
+                                        // update exists sign do not use line param
+                                        nvim.command("sign place " + constant_1.signPrefix + lnum + " name=" + group + " buffer=" + bufnr);
                                     }
                                     delete lines[lnum];
                                 }
@@ -352,6 +353,7 @@ var App = /** @class */ (function () {
                             if (otherSigns[lnum]) {
                                 otherSigns[lnum].forEach(function (_a) {
                                     var signId = _a.signId, groupName = _a.groupName;
+                                    nvim.command("sign unplace " + signId + " buffer=" + bufnr);
                                     nvim.command("sign place " + signId + " line=" + lnum + " name=" + groupName + " buffer=" + bufnr);
                                 });
                             }
