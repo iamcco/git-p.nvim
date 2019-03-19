@@ -309,7 +309,7 @@ export default class App {
           if (group !== groupName) {
             // update exists sign do not use line param
             nvim.command(
-              `sign place ${signPrefix}${lnum} name=${group} buffer=${bufnr}`
+              `sign place ${signId} name=${group} buffer=${bufnr}`
             )
           }
           delete lines[lnum]

@@ -326,7 +326,7 @@ var App = /** @class */ (function () {
                                     // update diff sign if groupName is difference
                                     if (group !== groupName) {
                                         // update exists sign do not use line param
-                                        nvim.command("sign place " + constant_1.signPrefix + lnum + " name=" + group + " buffer=" + bufnr);
+                                        nvim.command("sign place " + signId + " name=" + group + " buffer=" + bufnr);
                                     }
                                     delete lines[lnum];
                                 }
