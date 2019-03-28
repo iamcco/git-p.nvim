@@ -230,7 +230,7 @@ export default class App {
     }
     // clear pre virtual text
     await nvim.call( 'nvim_buf_clear_namespace', [bufnr, this.virtualId, 0, -1])
-    const formtLine = await nvim.getVar('gitp_blmae_format')
+    const formtLine = await nvim.getVar('gitp_blame_format')
     const blameText = blameKeys.reduce((res, next) => {
       return res.replace(`%{${next}}`, blame[next])
     }, formtLine as string)

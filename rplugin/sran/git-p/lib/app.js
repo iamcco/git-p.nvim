@@ -251,7 +251,7 @@ var App = /** @class */ (function () {
                     case 3:
                         // clear pre virtual text
                         _a.sent();
-                        return [4 /*yield*/, nvim.getVar('gitp_blmae_format')];
+                        return [4 /*yield*/, nvim.getVar('gitp_blame_format')];
                     case 4:
                         formtLine = _a.sent();
                         blameText = constant_1.blameKeys.reduce(function (res, next) {
