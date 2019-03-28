@@ -39,7 +39,7 @@ highlight link GitPBlameLine GitPBlameLineHi
 " zone: +xxxx
 " commit: commit message
 " lineNum: line number
-let g:gitp_blmae_format = '    %{account} * %{ago}'
+let g:gitp_blame_format = '    %{account} * %{ago}'
 
 " statusline integrated: b:gitp_blame, b:gitp_diff_state
 "
