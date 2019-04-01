@@ -232,7 +232,14 @@ export default class App {
     await nvim.call( 'nvim_buf_clear_namespace', [bufnr, this.virtualId, 0, -1])
     const formtLine = await nvim.getVar('gitp_blame_format')
     const blameText = blameKeys.reduce((res, next) => {
-      return res.replace(`%{${next}}`, blame[next])
+      return res.replace(new RegExp(`%\\{${next}((:(\\d+))?(:(\\d+))?)\\}`), (m, g1, g2, g3, g4, g5) => {
+        if (g5) {
+          return blame[next].slice(g3, g5)
+        } else if (g3) {
+          return blame[next].slice(0, g3)
+        }
+        return blame[next]
+      })
     }, formtLine as string)
     // set new virtual text
     await nvim.call(

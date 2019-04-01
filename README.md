@@ -41,6 +41,8 @@ highlight link GitPBlameLine GitPBlameLineHi
 " lineNum: line number
 let g:gitp_blame_format = '    %{account} * %{ago}'
 
+" NOTE: use %{hash:8} or %{hash:0:8} to use the first 8 characters
+
 " statusline integrated: b:gitp_blame, b:gitp_diff_state
 "
 " blame info:

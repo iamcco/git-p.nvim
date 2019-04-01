@@ -255,7 +255,15 @@ var App = /** @class */ (function () {
                     case 4:
                         formtLine = _a.sent();
                         blameText = constant_1.blameKeys.reduce(function (res, next) {
-                            return res.replace("%{" + next + "}", blame[next]);
+                            return res.replace(new RegExp("%\\{" + next + "((:(\\d+))?(:(\\d+))?)\\}"), function (m, g1, g2, g3, g4, g5) {
+                                if (g5) {
+                                    return blame[next].slice(g3, g5);
+                                }
+                                else if (g3) {
+                                    return blame[next].slice(0, g3);
+                                }
+                                return blame[next];
+                            });
                         }, formtLine);
                         // set new virtual text
                         return [4 /*yield*/, nvim.call('nvim_buf_set_virtual_text', [
