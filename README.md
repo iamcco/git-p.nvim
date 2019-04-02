@@ -85,6 +85,9 @@ let g:gitp_delete_top_and_bottom_sign = '▤'
 " use <leader>d to display change
 nmap <leader>d <Plug>(git-p-diff-preview)
 
+" NOTE: if have diff preview window, it will focus to the diff preview window
+" if current window is diff preview window, it will close diff preview window
+
 " use custom highlight for float diff preview window
 " change Pmenu to your highlight group
 highlight link GitPDiffFloat Pmenu

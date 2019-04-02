@@ -382,7 +382,7 @@ var App = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         if (this.dpWindow !== undefined) {
-                            return [2 /*return*/];
+                            return [2 /*return*/, this.focusDPWin()];
                         }
                         nvim = this.plugin.nvim;
                         return [4 /*yield*/, nvim.call('line', '.')];
@@ -467,6 +467,45 @@ var App = /** @class */ (function () {
                     case 18:
                         _a.sent();
                         return [2 /*return*/];
+                }
+            });
+        });
+    };
+    App.prototype.focusDPWin = function () {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var nvim, currentWinId, error_3, error_4;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        nvim = this.plugin.nvim;
+                        return [4 /*yield*/, nvim.call('nvim_get_current_win')];
+                    case 1:
+                        currentWinId = _a.sent();
+                        if (!(currentWinId === this.dpWindow.id)) return [3 /*break*/, 6];
+                        _a.label = 2;
+                    case 2:
+                        _a.trys.push([2, 4, , 5]);
+                        return [4 /*yield*/, this.closeDiffPreview(true)];
+                    case 3:
+                        _a.sent();
+                        return [3 /*break*/, 5];
+                    case 4:
+                        error_3 = _a.sent();
+                        this.logger.error('Close Diff Preview Window Error: ', error_3);
+                        return [3 /*break*/, 5];
+                    case 5: return [3 /*break*/, 9];
+                    case 6:
+                        _a.trys.push([6, 8, , 9]);
+                        return [4 /*yield*/, nvim.call('nvim_set_current_win', this.dpWindow.id)];
+                    case 7:
+                        _a.sent();
+                        return [3 /*break*/, 9];
+                    case 8:
+                        error_4 = _a.sent();
+                        this.dpWindow = undefined;
+                        this.logger.error('Focus Diff Preview Window Error: ', error_4);
+                        return [3 /*break*/, 9];
+                    case 9: return [2 /*return*/];
                 }
             });
         });
@@ -581,31 +620,38 @@ var App = /** @class */ (function () {
     App.prototype.destroy = function () {
         this.diffSubscription.unsubscribe();
     };
-    App.prototype.closeDiffPreview = function () {
+    App.prototype.closeDiffPreview = function (focus) {
+        if (focus === void 0) { focus = false; }
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var dpWindow, nvim, isSupportWinClose;
+            var dpWindow, nvim, currentWinId, isSupportWinClose;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        if (this.dpWindow === undefined) {
+                        dpWindow = this.dpWindow;
+                        if (dpWindow === undefined) {
                             return [2 /*return*/];
                         }
-                        dpWindow = this.dpWindow;
-                        this.dpWindow = undefined;
                         nvim = this.plugin.nvim;
-                        return [4 /*yield*/, nvim.call('exists', '*nvim_win_close')];
+                        return [4 /*yield*/, nvim.call('nvim_get_current_win')];
                     case 1:
-                        isSupportWinClose = _a.sent();
-                        if (!isSupportWinClose) return [3 /*break*/, 3];
-                        return [4 /*yield*/, nvim.call('nvim_win_close', [dpWindow.id, true])];
+                        currentWinId = _a.sent();
+                        if (!focus && currentWinId === dpWindow.id) {
+                            return [2 /*return*/];
+                        }
+                        this.dpWindow = undefined;
+                        return [4 /*yield*/, nvim.call('exists', '*nvim_win_close')];
                     case 2:
+                        isSupportWinClose = _a.sent();
+                        if (!isSupportWinClose) return [3 /*break*/, 4];
+                        return [4 /*yield*/, nvim.call('nvim_win_close', [dpWindow.id, true])];
+                    case 3:
                         _a.sent();
-                        return [3 /*break*/, 5];
-                    case 3: return [4 /*yield*/, nvim.call('gitp#close_win', dpWindow.id)];
-                    case 4:
+                        return [3 /*break*/, 6];
+                    case 4: return [4 /*yield*/, nvim.call('gitp#close_win', dpWindow.id)];
+                    case 5:
                         _a.sent();
-                        _a.label = 5;
-                    case 5: return [2 /*return*/];
+                        _a.label = 6;
+                    case 6: return [2 /*return*/];
                 }
             });
         });
@@ -648,7 +694,7 @@ var App = /** @class */ (function () {
     };
     App.prototype.createWin = function (bufnr, width, height, row, col, anchor) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var nvim, winnr_1, windows, error_3;
+            var nvim, winnr_1, windows, error_5;
             var _this = this;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
@@ -665,7 +711,7 @@ var App = /** @class */ (function () {
                                     height: height,
                                     relative: 'editor',
                                     anchor: anchor,
-                                    focusable: false,
+                                    focusable: true,
                                     row: row,
                                     col: col
                                 }
@@ -705,8 +751,8 @@ var App = /** @class */ (function () {
                         _a.sent();
                         return [2 /*return*/, this.dpWindow];
                     case 11:
-                        error_3 = _a.sent();
-                        this.logger.error('Create Window Error: ', error_3);
+                        error_5 = _a.sent();
+                        this.logger.error('Create Window Error: ', error_5);
                         return [3 /*break*/, 12];
                     case 12: return [2 /*return*/];
                 }

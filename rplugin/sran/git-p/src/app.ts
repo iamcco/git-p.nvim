@@ -357,7 +357,7 @@ export default class App {
 
   private async showDiffPreview(bufnr: number, line: number) {
     if (this.dpWindow !== undefined) {
-      return
+      return this.focusDPWin()
     }
     const { nvim } = this.plugin
     const currentLine = await nvim.call('line', '.') as number
@@ -414,6 +414,25 @@ export default class App {
       this.logger.error('Show Diff Preview Error: ', error)
     }
     await nvim.setOption('eventignore', eventIgnore)
+  }
+
+  private async focusDPWin() {
+    const { nvim } = this.plugin
+    const currentWinId = await nvim.call('nvim_get_current_win') as number
+    if (currentWinId === this.dpWindow.id) {
+      try {
+        await this.closeDiffPreview(true)
+      } catch (error) {
+        this.logger.error('Close Diff Preview Window Error: ', error)
+      }
+    } else {
+      try {
+        await nvim.call('nvim_set_current_win', this.dpWindow.id)
+      } catch (error) {
+        this.dpWindow = undefined
+        this.logger.error('Focus Diff Preview Window Error: ', error)
+      }
+    }
   }
 
   private getBufferInfo(bufnr: number): Promise<undefined | BufferInfo> {
@@ -507,13 +526,17 @@ export default class App {
     this.diffSubscription.unsubscribe()
   }
 
-  private async closeDiffPreview() {
-    if (this.dpWindow === undefined) {
+  private async closeDiffPreview(focus: boolean = false) {
+    const dpWindow = this.dpWindow
+    if (dpWindow === undefined) {
       return
     }
-    const dpWindow = this.dpWindow
-    this.dpWindow = undefined
     const { nvim } = this.plugin
+    const currentWinId = await nvim.call('nvim_get_current_win') as number
+    if (!focus && currentWinId === dpWindow.id) {
+      return
+    }
+    this.dpWindow = undefined
     const isSupportWinClose = await nvim.call('exists', '*nvim_win_close')
     if (isSupportWinClose) {
       await nvim.call('nvim_win_close', [dpWindow.id, true])
@@ -562,7 +585,7 @@ export default class App {
             height,
             relative: 'editor',
             anchor,
-            focusable: false,
+            focusable: true,
             row,
             col
           }

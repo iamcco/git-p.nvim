@@ -27,6 +27,7 @@ export default class App {
     private updateBlameLine;
     private updateDiffSign;
     private showDiffPreview;
+    private focusDPWin;
     private getBufferInfo;
     private getCurrentBuffer;
     private closeFile;
