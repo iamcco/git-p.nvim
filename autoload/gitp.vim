@@ -8,6 +8,11 @@ function! gitp#close_win(id) abort
   return 0
 endfunction
 
+" map quit
+function! gitp#map_quit() abort
+  nmap <buffer> q <Plug>(git-p-diff-preview)
+endfunction
+
 " get signs by bufnr
 function! gitp#get_signs(bufnr) abort
   redir => l:signlines

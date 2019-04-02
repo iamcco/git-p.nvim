@@ -493,19 +493,22 @@ var App = /** @class */ (function () {
                         error_3 = _a.sent();
                         this.logger.error('Close Diff Preview Window Error: ', error_3);
                         return [3 /*break*/, 5];
-                    case 5: return [3 /*break*/, 9];
+                    case 5: return [3 /*break*/, 10];
                     case 6:
-                        _a.trys.push([6, 8, , 9]);
+                        _a.trys.push([6, 9, , 10]);
                         return [4 /*yield*/, nvim.call('nvim_set_current_win', this.dpWindow.id)];
                     case 7:
                         _a.sent();
-                        return [3 /*break*/, 9];
+                        return [4 /*yield*/, nvim.call('gitp#map_quit')];
                     case 8:
+                        _a.sent();
+                        return [3 /*break*/, 10];
+                    case 9:
                         error_4 = _a.sent();
                         this.dpWindow = undefined;
                         this.logger.error('Focus Diff Preview Window Error: ', error_4);
-                        return [3 /*break*/, 9];
-                    case 9: return [2 /*return*/];
+                        return [3 /*break*/, 10];
+                    case 10: return [2 /*return*/];
                 }
             });
         });

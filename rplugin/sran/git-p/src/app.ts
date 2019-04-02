@@ -428,6 +428,7 @@ export default class App {
     } else {
       try {
         await nvim.call('nvim_set_current_win', this.dpWindow.id)
+        await nvim.call('gitp#map_quit')
       } catch (error) {
         this.dpWindow = undefined
         this.logger.error('Focus Diff Preview Window Error: ', error)
