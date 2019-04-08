@@ -284,7 +284,7 @@ var App = /** @class */ (function () {
     // update diff sign by diff info
     App.prototype.updateDiffSign = function (diff, bufnr) {
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var nvim, lines, signsRaw, signsLines, otherSigns, _i, signsLines_1, line, _a, lnum, signId, groupName, group, _loop_1, lnum;
+            var nvim, lines, signsRaw, signsLines, _i, signsLines_1, line, _a, lnum, signId, groupName, group, lnum, sign;
             return tslib_1.__generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -297,7 +297,6 @@ var App = /** @class */ (function () {
                     case 1:
                         signsRaw = _b.sent();
                         signsLines = signsRaw.trim().split('\n').slice(2);
-                        otherSigns = {};
                         // lnum 0 should assign to 1
                         if (lines['0']) {
                             if (lines['1']) {
@@ -343,32 +342,11 @@ var App = /** @class */ (function () {
                                     nvim.command("sign unplace " + signId + " buffer=" + bufnr);
                                 }
                             }
-                            else if (!signId.startsWith(constant_1.signPrefix)) {
-                                if (!otherSigns[lnum]) {
-                                    otherSigns[lnum] = [];
-                                }
-                                otherSigns[lnum].push({
-                                    signId: signId,
-                                    groupName: groupName
-                                });
-                            }
                         }
-                        _loop_1 = function (lnum) {
-                            var sign = constant_1.signGroups[lines[lnum].operate];
-                            nvim.command("sign place " + constant_1.signPrefix + lnum + " line=" + lnum + " name=" + sign + " buffer=" + bufnr);
-                            // if line lnum have other sign,
-                            // upate it so it will cover on diff sign
-                            if (otherSigns[lnum]) {
-                                otherSigns[lnum].forEach(function (_a) {
-                                    var signId = _a.signId, groupName = _a.groupName;
-                                    nvim.command("sign unplace " + signId + " buffer=" + bufnr);
-                                    nvim.command("sign place " + signId + " line=" + lnum + " name=" + groupName + " buffer=" + bufnr);
-                                });
-                            }
-                        };
                         // place new diff sign
                         for (lnum in lines) {
-                            _loop_1(lnum);
+                            sign = constant_1.signGroups[lines[lnum].operate];
+                            nvim.command("sign place " + constant_1.signPrefix + lnum + " line=" + lnum + " name=" + sign + " buffer=" + bufnr);
                         }
                         return [2 /*return*/];
                 }

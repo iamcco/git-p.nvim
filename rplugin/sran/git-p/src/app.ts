@@ -273,9 +273,6 @@ export default class App {
      */
     const signsRaw: string = await nvim.call('gitp#get_signs', bufnr)
     const signsLines: string[] = signsRaw.trim().split('\n').slice(2)
-    const otherSigns: {
-      [lnum: string]: Array<{signId: string, groupName: string}>
-    } = {}
     // lnum 0 should assign to 1
     if (lines['0']) {
       if (lines['1']) {
@@ -324,14 +321,6 @@ export default class App {
           // delete diff sign if do not exist
           nvim.command(`sign unplace ${signId} buffer=${bufnr}`)
         }
-      } else if (!signId.startsWith(signPrefix)) {
-        if (!otherSigns[lnum]) {
-          otherSigns[lnum] = []
-        }
-        otherSigns[lnum].push({
-          signId,
-          groupName
-        })
       }
     }
     // place new diff sign
@@ -340,18 +329,6 @@ export default class App {
       nvim.command(
         `sign place ${signPrefix}${lnum} line=${lnum} name=${sign} buffer=${bufnr}`
       )
-      // if line lnum have other sign,
-      // upate it so it will cover on diff sign
-      if (otherSigns[lnum]) {
-        otherSigns[lnum].forEach(({ signId, groupName }) => {
-          nvim.command(
-            `sign unplace ${signId} buffer=${bufnr}`
-          )
-          nvim.command(
-            `sign place ${signId} line=${lnum} name=${groupName} buffer=${bufnr}`
-          )
-        })
-      }
     }
   }
 

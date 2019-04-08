@@ -1,5 +1,5 @@
 // vim sign id prefix
-export const signPrefix: string = '6000'
+export const signPrefix: string = '6666'
 
 export const deleteTopSymbol = '-'
 export const deleteBottomSymbol = '_'

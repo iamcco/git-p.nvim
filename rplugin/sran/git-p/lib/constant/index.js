@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var _a;
 // vim sign id prefix
-exports.signPrefix = '6000';
+exports.signPrefix = '6666';
 exports.deleteTopSymbol = '-';
 exports.deleteBottomSymbol = '_';
 exports.deleteTopAndBottomSymbol = '[';
