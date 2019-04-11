@@ -100,6 +100,10 @@ A. Why my diff sign update slow
 
 B. set updatetime to a small number like: `set updatetime=300`
 
+A. I want to see coc's sign if the line have both sign.
+
+B. set `"diagnostic.signOffset": 9999999` in coc-settings.json to let coc's sign get higher priority.
+
 ## TODO
 
 - [ ] will use new sign api when it port to neovim. [8668](https://github.com/neovim/neovim/issues/8668)
