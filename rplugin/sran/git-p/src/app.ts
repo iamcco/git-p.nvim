@@ -27,6 +27,7 @@ const NOTIFY_DIFF = 'git-p-diff'
 const NOTIFY_DIFF_PREVIEW = 'git-p-diff-preview'
 const NOTIFY_CLEAR_BLAME = 'git-p-clear-blame'
 const NOTIFY_CLOSE_DIFF_PREVIEW = 'git-p-close-diff-preview'
+const NOTIFY_BLAME = 'git-p-i-blame'
 const REQUEST_BLAME = 'git-p-r-blame'
 
 export default class App {
@@ -53,6 +54,9 @@ export default class App {
   // info buffer
   private dpBuffer: Buffer
   private dpWindow: Window
+  // blame timer
+  private blameTimer: NodeJS.Timeout
+  private blameCount: 0
 
   constructor(private plugin: Plugin) {
     this.init()
@@ -85,6 +89,14 @@ export default class App {
       switch (method) {
         case NOTIFY_DIFF:
           this.diff$.next(bufnr)
+          break;
+        case NOTIFY_BLAME:
+          this.diff$.next(bufnr)
+          if (this.blameTimer) {
+            clearTimeout(this.blameTimer)
+          }
+          this.blameCount = 0
+          this.displayBlame(bufnr, args[1])
           break;
         case NOTIFY_DIFF_PREVIEW:
           this.showDiffPreview(bufnr, args[1])
@@ -181,6 +193,27 @@ export default class App {
     })
   }
 
+  private async displayBlame(bufnr: number, line: number) {
+    if (this.blameCount > 6) {
+      this.blameCount = 0
+      return
+    }
+    this.blameCount += 1
+    const bufInfo = await this.getBufferInfo(bufnr)
+    if (!bufInfo || bufInfo.currentLine !== line) {
+      this.blameCount = 0
+      return
+    }
+    if (this.blames && this.blames[bufnr] && this.blames[bufnr].line === line) {
+      this.blameCount = 0
+      this.updateBlameLine(this.blames[bufnr].blame, bufInfo, true)
+    } else {
+      setTimeout(() => {
+        this.displayBlame(bufnr, line)
+      }, delayGap / 2);
+    }
+  }
+
   /**
    * clear blame virtual text except:
    *
@@ -201,16 +234,11 @@ export default class App {
     nvim.call( 'nvim_buf_clear_namespace', [bufnr, this.virtualId, 0, -1])
   }
 
-  private async updateBlameLine(blame: BlameLine, bufInfo: BufferInfo) {
+  private async updateBlameLine(blame: BlameLine, bufInfo: BufferInfo, focus: boolean = false) {
     if (!blame || this.virtualId === undefined) {
       return
     }
     const { nvim } = this.plugin
-    // virtual text is not enable
-    const enableVirtualText = await nvim.getVar('gitp_blame_virtual_text')
-    if (enableVirtualText !== 1) {
-      return
-    }
     const { bufnr, currentLine } = bufInfo
     const mode: string = await nvim.call('mode')
     // do not update blame if same line, hash and mode as before
@@ -227,6 +255,11 @@ export default class App {
       line: currentLine,
       blame,
       mode
+    }
+    // virtual text is not enable
+    const enableVirtualText = await nvim.getVar('gitp_blame_virtual_text')
+    if (!focus && enableVirtualText !== 1) {
+      return
     }
     // clear pre virtual text
     await nvim.call( 'nvim_buf_clear_namespace', [bufnr, this.virtualId, 0, -1])

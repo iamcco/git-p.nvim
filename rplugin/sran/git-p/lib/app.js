@@ -16,6 +16,7 @@ var NOTIFY_DIFF = 'git-p-diff';
 var NOTIFY_DIFF_PREVIEW = 'git-p-diff-preview';
 var NOTIFY_CLEAR_BLAME = 'git-p-clear-blame';
 var NOTIFY_CLOSE_DIFF_PREVIEW = 'git-p-close-diff-preview';
+var NOTIFY_BLAME = 'git-p-i-blame';
 var REQUEST_BLAME = 'git-p-r-blame';
 var App = /** @class */ (function () {
     function App(plugin) {
@@ -69,6 +70,14 @@ var App = /** @class */ (function () {
                                 switch (method) {
                                     case NOTIFY_DIFF:
                                         this.diff$.next(bufnr);
+                                        break;
+                                    case NOTIFY_BLAME:
+                                        this.diff$.next(bufnr);
+                                        if (this.blameTimer) {
+                                            clearTimeout(this.blameTimer);
+                                        }
+                                        this.blameCount = 0;
+                                        this.displayBlame(bufnr, args[1]);
                                         break;
                                     case NOTIFY_DIFF_PREVIEW:
                                         this.showDiffPreview(bufnr, args[1]);
@@ -192,6 +201,39 @@ var App = /** @class */ (function () {
             }
         });
     };
+    App.prototype.displayBlame = function (bufnr, line) {
+        return tslib_1.__awaiter(this, void 0, void 0, function () {
+            var bufInfo;
+            var _this = this;
+            return tslib_1.__generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (this.blameCount > 6) {
+                            this.blameCount = 0;
+                            return [2 /*return*/];
+                        }
+                        this.blameCount += 1;
+                        return [4 /*yield*/, this.getBufferInfo(bufnr)];
+                    case 1:
+                        bufInfo = _a.sent();
+                        if (!bufInfo || bufInfo.currentLine !== line) {
+                            this.blameCount = 0;
+                            return [2 /*return*/];
+                        }
+                        if (this.blames && this.blames[bufnr] && this.blames[bufnr].line === line) {
+                            this.blameCount = 0;
+                            this.updateBlameLine(this.blames[bufnr].blame, bufInfo, true);
+                        }
+                        else {
+                            setTimeout(function () {
+                                _this.displayBlame(bufnr, line);
+                            }, constant_1.delayGap / 2);
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
     /**
      * clear blame virtual text except:
      *
@@ -210,9 +252,10 @@ var App = /** @class */ (function () {
         var nvim = this.plugin.nvim;
         nvim.call('nvim_buf_clear_namespace', [bufnr, this.virtualId, 0, -1]);
     };
-    App.prototype.updateBlameLine = function (blame, bufInfo) {
+    App.prototype.updateBlameLine = function (blame, bufInfo, focus) {
+        if (focus === void 0) { focus = false; }
         return tslib_1.__awaiter(this, void 0, void 0, function () {
-            var nvim, enableVirtualText, bufnr, currentLine, mode, formtLine, blameText;
+            var nvim, bufnr, currentLine, mode, enableVirtualText, formtLine, blameText;
             return tslib_1.__generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -220,17 +263,11 @@ var App = /** @class */ (function () {
                             return [2 /*return*/];
                         }
                         nvim = this.plugin.nvim;
-                        return [4 /*yield*/, nvim.getVar('gitp_blame_virtual_text')];
-                    case 1:
-                        enableVirtualText = _a.sent();
-                        if (enableVirtualText !== 1) {
-                            return [2 /*return*/];
-                        }
                         bufnr = bufInfo.bufnr, currentLine = bufInfo.currentLine;
                         return [4 /*yield*/, nvim.call('mode')
                             // do not update blame if same line, hash and mode as before
                         ];
-                    case 2:
+                    case 1:
                         mode = _a.sent();
                         // do not update blame if same line, hash and mode as before
                         if (this.blames[bufnr] !== undefined &&
@@ -246,6 +283,12 @@ var App = /** @class */ (function () {
                             blame: blame,
                             mode: mode
                         };
+                        return [4 /*yield*/, nvim.getVar('gitp_blame_virtual_text')];
+                    case 2:
+                        enableVirtualText = _a.sent();
+                        if (!focus && enableVirtualText !== 1) {
+                            return [2 /*return*/];
+                        }
                         // clear pre virtual text
                         return [4 /*yield*/, nvim.call('nvim_buf_clear_namespace', [bufnr, this.virtualId, 0, -1])];
                     case 3:

@@ -31,6 +31,7 @@ function! s:init() abort
     autocmd CursorMoved,CursorMovedI * call sran#rpc#notify('git-p-close-diff-preview', bufnr('%'))
   augroup END
   nnoremap <silent> <Plug>(git-p-diff-preview) :call sran#rpc#notify('git-p-diff-preview', bufnr('%'), line('.'))<Esc>
+  nnoremap <silent> <Plug>(git-p-show-blame) :call sran#rpc#notify('git-p-i-blame', bufnr('%'), line('.'))<CR>
 endfunction
 
 function! s:sign_define(sign, symbol, default_symbol, hi) abort

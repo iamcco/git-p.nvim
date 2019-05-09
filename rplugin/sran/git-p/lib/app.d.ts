@@ -13,9 +13,12 @@ export default class App {
     private diffs;
     private dpBuffer;
     private dpWindow;
+    private blameTimer;
+    private blameCount;
     constructor(plugin: Plugin);
     private init;
     private startSubscribeDiff;
+    private displayBlame;
     /**
      * clear blame virtual text except:
      *
