@@ -151,7 +151,7 @@ export function parseBlame(line: string): BlameLine {
   const res = {
     hash,
     account: hash === emptyHash ? 'You' : account,
-    date: dateFormat(timestamp, 'YYYY/HH/DD'),
+    date: dateFormat(timestamp, 'YYYY/MM/DD'),
     time: dateFormat(timestamp, 'HH:mm:ss'),
     ago: ago(timestamp),
     zone,

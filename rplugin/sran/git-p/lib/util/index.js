@@ -164,7 +164,7 @@ function parseBlame(line) {
     var res = {
         hash: hash,
         account: hash === constant_1.emptyHash ? 'You' : account,
-        date: dateFormat(timestamp, 'YYYY/HH/DD'),
+        date: dateFormat(timestamp, 'YYYY/MM/DD'),
         time: dateFormat(timestamp, 'HH:mm:ss'),
         ago: ago(timestamp),
         zone: zone,

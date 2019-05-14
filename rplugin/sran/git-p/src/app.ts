@@ -554,6 +554,10 @@ export default class App {
     } else {
       await nvim.call('gitp#close_win', dpWindow.id)
     }
+    // clear buffer after close preview window
+    if (this.dpBuffer) {
+      await this.dpBuffer.remove(1, -1, false)
+    }
   }
 
   private async createBuffer() {

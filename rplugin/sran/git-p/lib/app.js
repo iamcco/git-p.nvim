@@ -675,7 +675,13 @@ var App = /** @class */ (function () {
                     case 5:
                         _a.sent();
                         _a.label = 6;
-                    case 6: return [2 /*return*/];
+                    case 6:
+                        if (!this.dpBuffer) return [3 /*break*/, 8];
+                        return [4 /*yield*/, this.dpBuffer.remove(1, -1, false)];
+                    case 7:
+                        _a.sent();
+                        _a.label = 8;
+                    case 8: return [2 /*return*/];
                 }
             });
         });
