@@ -1,6 +1,6 @@
 {
   "name": "git-p",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "./lib/index.js",
   "license": "MIT",
   "scripts": {
@@ -8,9 +8,9 @@
   },
   "devDependencies": {
     "@types/node": "^11.9.5",
-    "neovim": "^4.2.1",
-    "sran.nvim": "^0.0.5",
     "findup": "^0.1.5",
-    "rxjs": "^6.4.0"
+    "neovim": "^4.2.1",
+    "rxjs": "^6.4.0",
+    "sran.nvim": "^0.0.6"
   }
 }
