@@ -86,7 +86,7 @@ let g:gitp_delete_top_and_bottom_sign = '▤'
 nmap <leader>d <Plug>(git-p-diff-preview)
 
 " show blame line manually if `let g:gitp_blame_virtual_text = 0`
-nmap <leader>s <Plug>(git-p-i-blame)
+nmap <leader>s <Plug>(git-p-show-blame)
 
 " NOTE: if have diff preview window, it will focus to the diff preview window
 " if current window is diff preview window, it will close diff preview window
